@@ -191,7 +191,7 @@ class ResultSet:
         for hist in objs:
             CANVAS.cd(i)
             try:
-                hist.SetStats(False)
+                hist.SetStats(True)
             except AttributeError:
                 pass
             if type(hist) in (ROOT.TH1I, ROOT.TH1F, ROOT.TH1D):
