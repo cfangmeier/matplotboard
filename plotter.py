@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 import math
 import matplotlib as mpl
-mpl.rc('font', **{'family': 'sans-serif', 'sans-serif': ['Helvetica']})
-mpl.rc('font', **{'family': 'serif', 'serif': ['Palatino']})
+# mpl.rc('font', **{'family': 'sans-serif', 'sans-serif': ['Helvetica']})
+# mpl.rc('font', **{'family': 'serif', 'serif': ['Palatino']})
 mpl.rc('text', usetex=True)
-mpl.rc('savefig', dpi=120)
+mpl.rc('figure', dpi=200)
+mpl.rc('savefig', dpi=200)
 
 
 def add_decorations(axes, luminosity, energy):
@@ -27,6 +28,54 @@ def add_decorations(axes, luminosity, energy):
               transform=axes.transAxes)
 
 
+def to_bin_list(th1, include_errors=False):
+    bins = []
+    for i in range(th1.GetNbinsX()):
+        center = th1.GetBinCenter(i + 1)
+        width = th1.GetBinWidth(i + 1)
+        content = th1.GetBinContent(i + 1)
+        if include_errors:
+            error = th1.GetBinError(i + 1)
+            bins.append((center-width/2, center+width/2, (content, error)))
+        else:
+            bins.append((center-width/2, center+width/2, content))
+    return bins
+
+
+def histogram(th1, include_errors=False):
+    edges = []
+    values = []
+    bin_list = to_bin_list(th1, include_errors)
+    for (l_edge, _, val) in bin_list:
+        edges.append(l_edge)
+        values.append(val)
+    edges.append(bin_list[-1][1])
+    return values, edges
+
+
+def histogram2d(th2, include_errors=False):
+    """ converts TH2 object to something amenable to
+    plotting w/ matplotlab's pcolormesh
+    """
+    import numpy as np
+    nbins_x = th2.GetNbinsX()
+    nbins_y = th2.GetNbinsY()
+    xs = np.zeros((nbins_y, nbins_x), np.float64)
+    ys = np.zeros((nbins_y, nbins_x), np.float64)
+    zs = np.zeros((nbins_y, nbins_x), np.float64)
+    for i in range(nbins_x):
+        for j in range(nbins_y):
+            xs[j][i] = th2.GetXaxis().GetBinLowEdge(i+1)
+            ys[j][i] = th2.GetYaxis().GetBinLowEdge(j+1)
+            zs[j][i] = th2.GetBinContent(i+1, j+1)
+    # just_xs = np.array([th2.GetXaxes().GetBinLowEdge(i) for i in range(1,nbins_x)] +
+    #                     [th2.GetXaxes().GetBinHighEdge(nbins_x-1)])
+    # just_ys = np.array([th2.GetYaxes().GetBinLowEdge(i) for i in range(1,nbins_y)] +
+    #                     [th2.GetYaxes().GetBinHighEdge(nbins_y-1)])
+
+    return xs, ys, zs
+
+
 class StackHist:
 
     def __init__(self, title=""):
@@ -42,26 +91,16 @@ class StackHist:
         self.signal_stack = True
         self.data = None
 
-    @staticmethod
-    def to_bin_list(th1):
-        bins = []
-        for i in range(th1.GetNbinsX()):
-            center = th1.GetBinCenter(i + 1)
-            width = th1.GetBinWidth(i + 1)
-            content = th1.GetBinContent(i + 1)
-            bins.append((center-width/2, center+width/2, content))
-        return bins
-
     def add_mc_background(self, th1, label, lumi=None, plot_color=''):
-        self.backgrounds.append((label, lumi, self.to_bin_list(th1), plot_color))
+        self.backgrounds.append((label, lumi, to_bin_list(th1), plot_color))
 
     def set_mc_signal(self, th1, label, lumi=None, stack=True, scale=1, plot_color=''):
-        self.signal = (label, lumi, self.to_bin_list(th1), plot_color)
+        self.signal = (label, lumi, to_bin_list(th1), plot_color)
         self.signal_stack = stack
         self.signal_scale = scale
 
     def set_data(self, th1, lumi=None, plot_color=''):
-        self.data = ('data', lumi, self.to_bin_list(th1), plot_color)
+        self.data = ('data', lumi, to_bin_list(th1), plot_color)
         self.luminosity = lumi
 
     def _verify_binning_match(self):
