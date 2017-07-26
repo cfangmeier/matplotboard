@@ -53,6 +53,32 @@ def histogram(th1, include_errors=False):
     return values, edges
 
 
+def plot_histogram(h1, *args, axes=None, norm=None, include_errors=False, **kwargs):
+    """ Plots a 1D ROOT histogram object using matplotlib """
+    import numpy as np
+    bins, edges = histogram(h1, include_errors=include_errors)
+
+    if norm is not None:
+        scale = norm/np.sum(bins)
+        bins = [(bin*scale, err*scale) for (bin, err) in bins]
+    bins, errs = list(zip(*bins))
+
+    left, right = np.array(edges[:-1]), np.array(edges[1:])
+    X = np.array([left, right]).T.flatten()
+    Y = np.array([bins, bins]).T.flatten()
+    if axes is None:
+        import matplotlib.pyplot as plt
+        axes = plt.gca()
+    axes.set_xlabel(kwargs.pop('xlabel', ''))
+    axes.set_ylabel(kwargs.pop('ylabel', ''))
+    axes.set_title(kwargs.pop('title', ''))
+    axes.plot(X, Y, *args, linewidth=1, **kwargs)
+    if include_errors:
+        axes.errorbar(0.5*(left+right), bins, yerr=errs,
+                      color='k', marker=None, linestyle='None',
+                      barsabove=True, elinewidth=.7, capsize=1)
+
+
 def histogram2d(th2, include_errors=False):
     """ converts TH2 object to something amenable to
     plotting w/ matplotlab's pcolormesh
@@ -68,12 +94,20 @@ def histogram2d(th2, include_errors=False):
             xs[j][i] = th2.GetXaxis().GetBinLowEdge(i+1)
             ys[j][i] = th2.GetYaxis().GetBinLowEdge(j+1)
             zs[j][i] = th2.GetBinContent(i+1, j+1)
-    # just_xs = np.array([th2.GetXaxes().GetBinLowEdge(i) for i in range(1,nbins_x)] +
-    #                     [th2.GetXaxes().GetBinHighEdge(nbins_x-1)])
-    # just_ys = np.array([th2.GetYaxes().GetBinLowEdge(i) for i in range(1,nbins_y)] +
-    #                     [th2.GetYaxes().GetBinHighEdge(nbins_y-1)])
 
     return xs, ys, zs
+
+
+def plot_histogram2d(th2, *args, axes=None, **kwargs):
+    """ Plots a 2D ROOT histogram object using matplotlib """
+    if axes is None:
+        import matplotlib.pyplot as plt
+        axes = plt.gca()
+    axes.set_xlabel(kwargs.pop('xlabel', ''))
+    axes.set_ylabel(kwargs.pop('ylabel', ''))
+    axes.set_title(kwargs.pop('title', ''))
+    axes.pcolormesh(*histogram2d(th2))
+    # axes.colorbar() TODO: Re-enable this
 
 
 class StackHist:
@@ -230,7 +264,7 @@ class StackHistWithSignificance(StackHist):
             for i, (left, right, value) in enumerate(self.signal[2]):
                 sigs[i] += value
                 xs.append(left)
-            xs, ys = zip(*[(x, sig/(sig+bg)) for x, sig, bg in zip(xs, sigs, bgs) if (sig+bg)>0])
+            xs, ys = zip(*[(x, sig/(sig+bg)) for x, sig, bg in zip(xs, sigs, bgs) if (sig+bg) > 0])
             bottom.plot(xs, ys, '.k')
 
         if high_cut_significance:
@@ -263,9 +297,9 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     from utils import ResultSet
 
-    rs_TTZ =  ResultSet("TTZ",  "../data/TTZToLLNuNu_treeProducerSusyMultilepton_tree.root")
-    rs_TTW  = ResultSet("TTW",  "../data/TTWToLNu_treeProducerSusyMultilepton_tree.root")
-    rs_TTH  = ResultSet("TTH", "../data/TTHnobb_mWCutfix_ext1_treeProducerSusyMultilepton_tree.root")
+    rs_TTZ = ResultSet("TTZ",  "../data/TTZToLLNuNu_treeProducerSusyMultilepton_tree.root")
+    rs_TTW = ResultSet("TTW",  "../data/TTWToLNu_treeProducerSusyMultilepton_tree.root")
+    rs_TTH = ResultSet("TTH", "../data/TTHnobb_mWCutfix_ext1_treeProducerSusyMultilepton_tree.root")
     rs_TTTT = ResultSet("TTTT", "../data/TTTT_ext_treeProducerSusyMultilepton_tree.root")
 
     sh = StackHist('B-Jet Multiplicity')
