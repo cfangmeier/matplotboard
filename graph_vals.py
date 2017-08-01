@@ -1,9 +1,9 @@
 import pydotplus.graphviz as pdp
-import sys
-import re
 
 
 def parse(str_in, alias=None):
+    """ Creates a call-tree for the supplied value name
+    """
     str_in = "("+str_in+")"
 
     functions = []
@@ -81,6 +81,8 @@ def parse(str_in, alias=None):
 
 
 if __name__ == '__main__':
+    import re
+    import sys
     aliases = {}
     ali_re = re.compile(r"ALIAS::\"([^\"]*)\" referring to \"([^\"]*)\"")
 

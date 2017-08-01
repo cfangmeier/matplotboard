@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!env/bin/python
 from os import listdir
 from os.path import join, isdir
 import argparse
@@ -7,7 +7,7 @@ import subprocess
 import multiprocessing
 from multiprocessing.pool import Pool
 
-from filval_merge import merge_files
+from merge import merge_files
 
 
 def run_job(job_number, executable, files):
