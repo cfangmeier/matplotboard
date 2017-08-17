@@ -1,4 +1,4 @@
-#!env/bin/python
+#! /usr/bin/env python3
 from os import listdir
 from os.path import join, isdir
 import argparse

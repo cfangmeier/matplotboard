@@ -28,24 +28,24 @@ def add_decorations(axes, luminosity, energy):
               transform=axes.transAxes)
 
 
-def to_bin_list(th1, include_errors=False):
+def to_bin_list(th1):
     bins = []
     for i in range(th1.GetNbinsX()):
-        center = th1.GetBinCenter(i + 1)
-        width = th1.GetBinWidth(i + 1)
-        content = th1.GetBinContent(i + 1)
-        if include_errors:
-            error = th1.GetBinError(i + 1)
-            bins.append((center-width/2, center+width/2, (content, error)))
-        else:
-            bins.append((center-width/2, center+width/2, content))
+        bin_ = i+1
+
+        center = th1.GetBinCenter(bin_)
+        width = th1.GetBinWidth(bin_)
+        content = th1.GetBinContent(bin_)
+        error = th1.GetBinError(bin_)
+
+        bins.append((center-width/2, center+width/2, (content, error)))
     return bins
 
 
 def histogram(th1, include_errors=False):
     edges = []
     values = []
-    bin_list = to_bin_list(th1, include_errors)
+    bin_list = to_bin_list(th1)
     for (l_edge, _, val) in bin_list:
         edges.append(l_edge)
         values.append(val)
@@ -53,30 +53,59 @@ def histogram(th1, include_errors=False):
     return values, edges
 
 
-def plot_histogram(h1, *args, axes=None, norm=None, include_errors=False, **kwargs):
+def histogram_slice(hist, range_):
+    bins, edges = hist
+    lim_low, lim_high = range_
+    bins_new = []
+    edges_new = []
+    for i, (bin_, low, high) in enumerate(zip(bins, edges, edges[1:])):
+        if low >= lim_low and high <= lim_high:
+            bins_new.append(bin_)
+            if edges_new:
+                edges_new.pop()  # pop off last high edge
+            edges_new.append(low)
+            edges_new.append(high)
+    return bins_new, edges_new
+
+
+def plot_histogram(h1, *args, axes=None, norm=None, include_errors=False,
+                   log=False, xlim=None, ylim=None, **kwargs):
     """ Plots a 1D ROOT histogram object using matplotlib """
     import numpy as np
-    bins, edges = histogram(h1, include_errors=include_errors)
+    if isinstance(h1, tuple):
+        bins, edges = h1
+    else:
+        bins, edges = histogram(h1, include_errors=True)
 
-    if norm is not None:
-        scale = norm/np.sum(bins)
-        bins = [(bin*scale, err*scale) for (bin, err) in bins]
+    scale = 1. if norm is None else norm/np.sum(bins)
+    bins = [(bin_*scale, err*scale) for (bin_, err) in bins]
     bins, errs = list(zip(*bins))
 
     left, right = np.array(edges[:-1]), np.array(edges[1:])
     X = np.array([left, right]).T.flatten()
     Y = np.array([bins, bins]).T.flatten()
+
     if axes is None:
         import matplotlib.pyplot as plt
         axes = plt.gca()
+
     axes.set_xlabel(kwargs.pop('xlabel', ''))
     axes.set_ylabel(kwargs.pop('ylabel', ''))
     axes.set_title(kwargs.pop('title', ''))
+    if xlim is not None:
+        axes.set_xlim(xlim)
+    if ylim is not None:
+        axes.set_ylim(ylim)
+    # elif not log:
+    #     axes.set_ylim((0, None))
+
     axes.plot(X, Y, *args, linewidth=1, **kwargs)
     if include_errors:
         axes.errorbar(0.5*(left+right), bins, yerr=errs,
                       color='k', marker=None, linestyle='None',
                       barsabove=True, elinewidth=.7, capsize=1)
+    if log:
+        axes.set_yscale('log')
 
 
 def histogram2d(th2, include_errors=False):
