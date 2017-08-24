@@ -1,11 +1,63 @@
 #!/usr/bin/env python3
-import math
+from collections import namedtuple
 import matplotlib as mpl
-# mpl.rc('font', **{'family': 'sans-serif', 'sans-serif': ['Helvetica']})
-# mpl.rc('font', **{'family': 'serif', 'serif': ['Palatino']})
-mpl.rc('text', usetex=True)
-mpl.rc('figure', dpi=200)
-mpl.rc('savefig', dpi=200)
+import numpy as np
+from filval.histogram_utils import (hist, hist2d, hist_bin_centers, hist_fit,
+                                    hist_normalize)
+# mpl.rc('text', usetex=True)
+# mpl.rc('figure', dpi=200)
+# mpl.rc('savefig', dpi=200)
+
+plot_registry = {}
+Plot = namedtuple('Plot', ['name', 'filename', 'title', 'desc', 'args'])
+
+
+def make_plot(filename=None, title='', scale=1):
+    import matplotlib.pyplot as plt
+    from functools import wraps
+    from os.path import join
+    from os import makedirs
+    from inspect import signature, getdoc
+    from markdown import Markdown
+
+    def fn_call_to_dict(fn, *args, **kwargs):
+        pnames = list(signature(fn).parameters)
+        pvals = list(args)+list(kwargs.keys())
+        return {k: v for k, v in zip(pnames, pvals)}
+
+    def process_docs(fn):
+        raw = getdoc(fn)
+        if raw:
+            md = Markdown(extensions=['mdx_math'],
+                          extension_configs={'mdx_math': {'enable_dollar_delimiter': True}})
+            return md.convert(raw)
+        else:
+            return None
+
+    def wrap(fn):
+        @wraps(fn)
+        def f(*args, **kwargs):
+            nonlocal filename
+            plt.clf()
+            plt.gcf().set_size_inches(scale*10, scale*10)
+            fn(*args, **kwargs)
+            pdict = fn_call_to_dict(fn, *args, **kwargs)
+            if filename is None:
+                pstr = ','.join('{}:{}'.format(pname, pval)
+                                for pname, pval in pdict.items())
+                filename = fn.__name__ + '::' + pstr
+                filename = filename.replace('/', '_').replace('.', '_')+".png"
+            plt.tight_layout()
+            try:
+                makedirs('output/figures')
+            except FileExistsError:
+                pass
+            plt.savefig(join('output/figures', filename))
+            plot_registry[fn.__name__] = Plot(fn.__name__, join('figures', filename),
+                                              title, process_docs(fn), pdict)
+        return f
+
+    return wrap
 
 
 def add_decorations(axes, luminosity, energy):
@@ -28,62 +80,22 @@ def add_decorations(axes, luminosity, energy):
               transform=axes.transAxes)
 
 
-def to_bin_list(th1):
-    bins = []
-    for i in range(th1.GetNbinsX()):
-        bin_ = i+1
-
-        center = th1.GetBinCenter(bin_)
-        width = th1.GetBinWidth(bin_)
-        content = th1.GetBinContent(bin_)
-        error = th1.GetBinError(bin_)
-
-        bins.append((center-width/2, center+width/2, (content, error)))
-    return bins
-
-
-def histogram(th1, include_errors=False):
-    edges = []
-    values = []
-    bin_list = to_bin_list(th1)
-    for (l_edge, _, val) in bin_list:
-        edges.append(l_edge)
-        values.append(val)
-    edges.append(bin_list[-1][1])
-    return values, edges
-
-
-def histogram_slice(hist, range_):
-    bins, edges = hist
-    lim_low, lim_high = range_
-    bins_new = []
-    edges_new = []
-    for i, (bin_, low, high) in enumerate(zip(bins, edges, edges[1:])):
-        if low >= lim_low and high <= lim_high:
-            bins_new.append(bin_)
-            if edges_new:
-                edges_new.pop()  # pop off last high edge
-            edges_new.append(low)
-            edges_new.append(high)
-    return bins_new, edges_new
-
-
-def plot_histogram(h1, *args, axes=None, norm=None, include_errors=False,
-                   log=False, xlim=None, ylim=None, **kwargs):
+def hist_plot(h, *args, axes=None, norm=None, include_errors=False,
+              log=False, fig=None, xlim=None, ylim=None, fit=None,
+              **kwargs):
     """ Plots a 1D ROOT histogram object using matplotlib """
-    import numpy as np
-    if isinstance(h1, tuple):
-        bins, edges = h1
-    else:
-        bins, edges = histogram(h1, include_errors=True)
+    from inspect import signature
+    if norm:
+        h = hist_normalize(h, norm)
+    values, errors, edges = h
 
-    scale = 1. if norm is None else norm/np.sum(bins)
-    bins = [(bin_*scale, err*scale) for (bin_, err) in bins]
-    bins, errs = list(zip(*bins))
+    scale = 1. if norm is None else norm/np.sum(values)
+    values = [val*scale for val in values]
+    errors = [val*scale for val in errors]
 
     left, right = np.array(edges[:-1]), np.array(edges[1:])
     X = np.array([left, right]).T.flatten()
-    Y = np.array([bins, bins]).T.flatten()
+    Y = np.array([values, values]).T.flatten()
 
     if axes is None:
         import matplotlib.pyplot as plt
@@ -101,47 +113,46 @@ def plot_histogram(h1, *args, axes=None, norm=None, include_errors=False,
 
     axes.plot(X, Y, *args, linewidth=1, **kwargs)
     if include_errors:
-        axes.errorbar(0.5*(left+right), bins, yerr=errs,
+        axes.errorbar(hist_bin_centers(h), values, yerr=errors,
                       color='k', marker=None, linestyle='None',
                       barsabove=True, elinewidth=.7, capsize=1)
     if log:
         axes.set_yscale('log')
+    if fit:
+        f, p0 = fit
+        popt, pcov = hist_fit(h, f, p0)
+        fit_xs = np.linspace(X[0], X[-1], 100)
+        fit_ys = f(fit_xs, *popt)
+        axes.plot(fit_xs, fit_ys, '--g')
+        arglabels = list(signature(f).parameters)[1:]
+        label_txt = "\n".join('{:7s}={: 0.2G}'.format(label, value)
+                              for label, value in zip(arglabels, popt))
+        axes.text(0.60, 0.95, label_txt, va='top', transform=axes.transAxes,
+                  fontsize='x-small', family='monospace', usetex=False)
+    axes.grid()
 
 
-def histogram2d(th2, include_errors=False):
-    """ converts TH2 object to something amenable to
-    plotting w/ matplotlab's pcolormesh
-    """
-    import numpy as np
-    nbins_x = th2.GetNbinsX()
-    nbins_y = th2.GetNbinsY()
-    xs = np.zeros((nbins_y, nbins_x), np.float64)
-    ys = np.zeros((nbins_y, nbins_x), np.float64)
-    zs = np.zeros((nbins_y, nbins_x), np.float64)
-    for i in range(nbins_x):
-        for j in range(nbins_y):
-            xs[j][i] = th2.GetXaxis().GetBinLowEdge(i+1)
-            ys[j][i] = th2.GetYaxis().GetBinLowEdge(j+1)
-            zs[j][i] = th2.GetBinContent(i+1, j+1)
-
-    return xs, ys, zs
-
-
-def plot_histogram2d(th2, *args, axes=None, **kwargs):
+def hist2d_plot(h, *args, axes=None, **kwargs):
     """ Plots a 2D ROOT histogram object using matplotlib """
+    try:
+        values, errors, xs, ys = h
+    except (TypeError, ValueError):
+        values, errors, xs, ys = hist2d(h)
+
     if axes is None:
         import matplotlib.pyplot as plt
         axes = plt.gca()
     axes.set_xlabel(kwargs.pop('xlabel', ''))
     axes.set_ylabel(kwargs.pop('ylabel', ''))
     axes.set_title(kwargs.pop('title', ''))
-    axes.pcolormesh(*histogram2d(th2))
+    axes.pcolormesh(xs, ys, values,)
     # axes.colorbar() TODO: Re-enable this
 
 
 class StackHist:
 
     def __init__(self, title=""):
+        raise NotImplementedError("need to fix to not use to_bin_list")
         self.title = title
         self.xlabel = ""
         self.ylabel = ""
@@ -155,15 +166,15 @@ class StackHist:
         self.data = None
 
     def add_mc_background(self, th1, label, lumi=None, plot_color=''):
-        self.backgrounds.append((label, lumi, to_bin_list(th1), plot_color))
+        self.backgrounds.append((label, lumi, hist(th1), plot_color))
 
     def set_mc_signal(self, th1, label, lumi=None, stack=True, scale=1, plot_color=''):
-        self.signal = (label, lumi, to_bin_list(th1), plot_color)
+        self.signal = (label, lumi, hist(th1), plot_color)
         self.signal_stack = stack
         self.signal_scale = scale
 
     def set_data(self, th1, lumi=None, plot_color=''):
-        self.data = ('data', lumi, to_bin_list(th1), plot_color)
+        self.data = ('data', lumi, hist(th1), plot_color)
         self.luminosity = lumi
 
     def _verify_binning_match(self):
@@ -254,7 +265,7 @@ class StackHist:
         axes.set_xlim(*self.xlim)
         # axes.set_ylim(*self.ylim)
         if self.logy:
-            axes.set_ylim(None, math.exp(math.log(max(bottoms))*1.4))
+            axes.set_ylim(None, np.exp(np.log(max(bottoms))*1.4))
         else:
             axes.set_ylim(None, max(bottoms)*1.2)
         axes.legend(frameon=True, ncol=2)
@@ -300,7 +311,7 @@ class StackHistWithSignificance(StackHist):
             # s/(s+b) for events passing a minimum cut requirement
             min_bg = [sum(bgs[i:]) for i in range(self.n_bins)]
             min_sig = [sum(sigs[i:]) for i in range(self.n_bins)]
-            min_xs, min_ys = zip(*[(x, sig/math.sqrt(sig+bg)) for x, sig, bg in zip(xs, min_sig, min_bg)
+            min_xs, min_ys = zip(*[(x, sig/np.sqrt(sig+bg)) for x, sig, bg in zip(xs, min_sig, min_bg)
                                    if (sig+bg) > 0])
             bottom_rhs.plot(min_xs, min_ys, '->', color=rhs_color)
 
@@ -308,7 +319,7 @@ class StackHistWithSignificance(StackHist):
             # s/(s+b) for events passing a maximum cut requirement
             max_bg = [sum(bgs[:i]) for i in range(self.n_bins)]
             max_sig = [sum(sigs[:i]) for i in range(self.n_bins)]
-            max_xs, max_ys = zip(*[(x, sig/math.sqrt(sig+bg)) for x, sig, bg in zip(xs, max_sig, max_bg)
+            max_xs, max_ys = zip(*[(x, sig/np.sqrt(sig+bg)) for x, sig, bg in zip(xs, max_sig, max_bg)
                                    if (sig+bg) > 0])
             bottom_rhs.plot(max_xs, max_ys, '-<', color=rhs_color)
 

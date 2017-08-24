@@ -1,6 +1,7 @@
 import ROOT
 
-from plotter import plot_histogram, plot_histogram2d
+from filval.plotter import hist_plot, hist2d_plot
+from numpy import ceil
 
 
 class ResultSet:
@@ -59,9 +60,9 @@ class ResultSet:
         for i, (name, obj) in enumerate(objs):
             axes = figure.add_subplot(*shape, i+1)
             if isinstance(obj, ROOT.TH2):
-                plot_histogram2d(obj, title=obj.GetTitle(), axes=axes)
+                hist2d_plot(obj, title=obj.GetTitle(), axes=axes)
             else:
-                plot_histogram(obj, title=obj.GetTitle(), axes=axes)
+                hist_plot(obj, title=obj.GetTitle(), axes=axes)
         figure.tight_layout()
 
     @classmethod
@@ -74,3 +75,9 @@ class ResultSet:
         if not hasattr(cls, "collections"):
             cls.collections = {}
         cls.collections[hc.sample_name] = hc
+
+    def __str__(self):
+        return self.sample_name+"@"+self.input_filename
+
+    def __repr__(self):
+        return f"<ResultSet: input_filename: {self.input_filename}>"

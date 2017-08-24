@@ -1,5 +1,9 @@
 numpy
 matplotlib
 ipython
+scipy
 jupyter
 pydotplus
+Jinja2
+Markdown
+python-markdown-math
