@@ -12,7 +12,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 
-def hist(th1):
+def hist(th1, rescale_x=1.0, rescale_y=1.0):
     nbins = th1.GetNbinsX()
 
     edges = np.zeros(nbins+1, np.float32)
@@ -25,18 +25,21 @@ def hist(th1):
         errors[i] = th1.GetBinError(i+1)
 
     edges[nbins] = th1.GetXaxis().GetBinUpEdge(nbins)
+    edges *= rescale_x
+    values *= rescale_y
+    errors *= rescale_y
     return values, errors, edges
+
 
 def hist_bin_centers(h):
     _, _, edges = h
     return (edges[:-1] + edges[1:])/2.0
 
 
-def hist2d(th2, include_errors=False):
+def hist2d(th2, rescale_x=1.0, rescale_y=1.0, rescale_z=1.0):
     """ Converts TH2 object to something amenable to
         plotting w/ matplotlab's pcolormesh.
     """
-    import numpy as np
     nbins_x = th2.GetNbinsX()
     nbins_y = th2.GetNbinsY()
     xs = np.zeros((nbins_y+1, nbins_x+1), np.float32)
@@ -54,6 +57,11 @@ def hist2d(th2, include_errors=False):
     for j in range(nbins_y+1):
         xs[j][nbins_x] = th2.GetXaxis().GetBinUpEdge(nbins_x+1)
         ys[j][nbins_x] = th2.GetYaxis().GetBinUpEdge(j+1)
+
+    xs *= rescale_x
+    ys *= rescale_y
+    values *= rescale_z
+    errors *= rescale_z
 
     return values, errors, xs, ys
 
