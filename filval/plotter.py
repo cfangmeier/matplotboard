@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from collections import defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
 from markdown import Markdown
@@ -16,12 +17,12 @@ __all__ = ['Plot',
 
 
 class Plot:
-    def __init__(self, subplots, name, title=None, docs="N/A", argdict={}):
+    def __init__(self, subplots, name, title=None, docs="N/A", argdicts={}):
         self.subplots = subplots
         self.name = name
         self.title = title
         self.docs = docs
-        self.argdict = argdict
+        self.argdicts = argdicts
 
 
 MD = Markdown(extensions=['mdx_math'],
@@ -98,31 +99,35 @@ def grid_plot(subplots):
     rows = len(subplots)
     cols = len(subplots[0])
 
-    argdicts = {}
-    docs = {}
+    argdicts = defaultdict(list)
+    docs = defaultdict(list)
     for i in range(rows):
         for j in range(cols):
-            plot = subplots[i][j]
-            if plot in ("FL", "FU", None):
+            cell = subplots[i][j]
+            if cell in ("FL", "FU", None):
                 continue
-            plot_fn, args, kwargs = plot
+            if not isinstance(cell, list):
+                cell = [cell]
             colspan = calc_colspan(subplots, i, j)
             rowspan = calc_rowspan(subplots, i, j)
             plt.subplot2grid((rows, cols), (i, j),
                              colspan=colspan, rowspan=rowspan)
-            this_args, this_docs = plot_fn(*args, **kwargs)
-            argdicts[(i, j)] = this_args
-            docs[(i, j)] = this_docs
+            for plot in cell:
+                plot_fn, args, kwargs = plot
+                this_args, this_docs = plot_fn(*args, **kwargs)
+                argdicts[(i, j)].append(this_args)
+                docs[(i, j)].append(this_docs)
     return argdicts, docs
 
 
 def save_plots(plots, exts=['png'], scale=1.0):
     for plot in plots:
+        print(f'Building plot {plot.name}')
         with lp.figure(plot.name, directory='output/figures',
                        exts=exts,
                        size=(scale*10, scale*10)):
-            argdict, docs = grid_plot(plot.subplots)
-            plot.argdict = argdict
+            argdicts, docs = grid_plot(plot.subplots)
+            plot.argdicts = argdicts
             plot.docs = docs
 
 
