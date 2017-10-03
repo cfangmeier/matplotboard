@@ -7,7 +7,7 @@ from markdown import Markdown
 import latexipy as lp
 
 from filval.histogram_utils import (hist, hist2d, hist_bin_centers, hist_fit,
-                                    hist_normalize)
+                                    hist_normalize, hist_stats)
 __all__ = ['Plot',
            'decl_plot',
            'grid_plot',
@@ -71,6 +71,35 @@ def decl_plot(fn):
 
         return argdict, docs
     return f
+
+
+def _add_stats(hist, title=''):
+    fmt = r'''\begin{{eqnarray*}}
+\sum{{x_i}} &=& {sum:5.3f}                  \\
+\sum{{\Delta x_i \cdot x_i}} &=& {int:5.3G} \\
+\mu &=& {mean:5.3G}                         \\
+\sigma^2 &=& {var:5.3G}                     \\
+\sigma &=& {std:5.3G}
+\end{{eqnarray*}}'''
+
+    txt = fmt.format(**hist_stats(hist), title=title)
+    txt = txt.replace('\n', ' ')
+
+    plt.text(0.7, 0.9, txt,
+             bbox={'facecolor': 'white',
+                   'alpha': 0.7,
+                   'boxstyle': 'square,pad=0.8'},
+             transform=plt.gca().transAxes,
+             verticalalignment='top',
+             horizontalalignment='left',
+             size='small')
+    if title:
+        plt.text(0.72, 0.97, title,
+                 bbox={'facecolor': 'white',
+                       'alpha': 0.8},
+                 transform=plt.gca().transAxes,
+                 verticalalignment='top',
+                 horizontalalignment='left')
 
 
 def grid_plot(subplots):
@@ -153,7 +182,7 @@ def add_decorations(axes, luminosity, energy):
 
 def hist_plot(h, *args, axes=None, norm=None, include_errors=False,
               log=False, fig=None, xlim=None, ylim=None, fit=None,
-              grid=False, **kwargs):
+              grid=False, stats=True, **kwargs):
     """ Plots a 1D ROOT histogram object using matplotlib """
     from inspect import signature
     if norm:
@@ -174,7 +203,7 @@ def hist_plot(h, *args, axes=None, norm=None, include_errors=False,
 
     axes.set_xlabel(kwargs.pop('xlabel', ''))
     axes.set_ylabel(kwargs.pop('ylabel', ''))
-    axes.set_title(kwargs.pop('title', ''))
+    title = kwargs.pop('title', '')
     if xlim is not None:
         axes.set_xlim(xlim)
     if ylim is not None:
@@ -200,6 +229,10 @@ def hist_plot(h, *args, axes=None, norm=None, include_errors=False,
                               for label, value in zip(arglabels, popt))
         axes.text(0.60, 0.95, label_txt, va='top', transform=axes.transAxes,
                   fontsize='medium', family='monospace', usetex=False)
+    if stats:
+        _add_stats(h, title)
+    else:
+        axes.set_title(title)
     axes.grid(grid, color='#E0E0E0')
 
 

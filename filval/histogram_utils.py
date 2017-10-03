@@ -76,10 +76,61 @@ def hist_slice(hist, range_):
             np.concatenate([edges[:-1][slice_], [edges[last]]]))
 
 
-def hist_normalize(h, norm):
-    values, errors, edges = h
+def hist_add(hist1, hist2, w1=1.0, w2=1.0):
+    v1, e1, *lim1 = hist1
+    v2, e2, *lim2 = hist2
+    # print(hist1)
+    if v1.shape != v2.shape:
+        raise ValueError(f'Mismatched histograms to add {v1.shape} != {v2.shape}')
+    # print(lim1)
+    # print(lim2)
+    # nlims_equal = (lim1 != lim2).any()
+    # print(nlims_equal)
+    # if nlims_equal:
+    #     raise ValueError(f'Histograms have different limits!')
+    if len(v1.shape) == 1:  # 1D histograms
+        return ((v1+v2), np.sqrt(e1*e1 + e2*e2), *lim1)
+
+
+def hist_integral(hist, times_bin_width=True):
+    values, errors, edges = hist
+    if times_bin_width:
+        bin_widths = [abs(x2 - x1) for x1, x2 in zip(edges[:-1], edges[1:])]
+        return sum(val*width for val, width in zip(values, bin_widths))
+    else:
+        return sum(values)
+
+
+def hist_normalize(hist, norm):
+    values, errors, edges = hist
     scale = norm/np.sum(values)
     return values*scale, errors*scale, edges
+
+
+def hist_mean(hist):
+    xs = hist_bin_centers(hist)
+    ys, _, _ = hist
+    return sum(x*y for x, y in zip(xs, ys)) / sum(ys)
+
+
+def hist_var(hist):
+    xs = hist_bin_centers(hist)
+    ys, _, _ = hist
+    mean = sum(x*y for x, y in zip(xs, ys)) / sum(ys)
+    mean2 = sum((x**2)*y for x, y in zip(xs, ys)) / sum(ys)
+    return mean2 - mean**2
+
+
+def hist_std(hist):
+    return np.sqrt(hist_var(hist))
+
+
+def hist_stats(hist):
+    return {'int': hist_integral(hist),
+            'sum': hist_integral(hist, False),
+            'mean': hist_mean(hist),
+            'var': hist_var(hist),
+            'std': hist_std(hist)}
 
 
 # def hist_slice2d(h, range_):
