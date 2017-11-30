@@ -17,7 +17,10 @@ class ResultSet:
         file = ROOT.TFile.Open(self.input_filename)
         l = file.GetListOfKeys()
         self.map = {}
-        self.values = dict(file.Get("_value_lookup"))
+        try:
+            self.values = dict(file.Get("_value_lookup"))
+        except Exception:
+            self.values = {}
         for i in range(l.GetSize()):
             name = l.At(i).GetName()
             new_name = ":".join((self.sample_name, name))
