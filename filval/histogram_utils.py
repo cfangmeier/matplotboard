@@ -76,20 +76,11 @@ def hist_slice(hist, range_):
             np.concatenate([edges[:-1][slice_], [edges[last]]]))
 
 
-def hist_add(hist1, hist2, w1=1.0, w2=1.0):
-    v1, e1, *lim1 = hist1
-    v2, e2, *lim2 = hist2
-    # print(hist1)
-    if v1.shape != v2.shape:
-        raise ValueError(f'Mismatched histograms to add {v1.shape} != {v2.shape}')
-    # print(lim1)
-    # print(lim2)
-    # nlims_equal = (lim1 != lim2).any()
-    # print(nlims_equal)
-    # if nlims_equal:
-    #     raise ValueError(f'Histograms have different limits!')
-    if len(v1.shape) == 1:  # 1D histograms
-        return ((v1+v2), np.sqrt(e1*e1 + e2*e2), *lim1)
+def hist_add(*hists):
+    if len(hists) == 0:
+        return np.zeros(0)
+    vals, errs, edges = zip(*hists)
+    return np.sum(vals, axis=0), np.sqrt(np.sum([err*err for err in errs], axis=0)), edges[0]
 
 
 def hist_integral(hist, times_bin_width=True):
