@@ -92,7 +92,7 @@ def hist_integral(hist, times_bin_width=True):
         return sum(values)
 
 
-def hist_normalize(hist, norm):
+def hist_normalize(hist, norm = 1):
     values, errors, edges = hist
     scale = norm/np.sum(values)
     return values*scale, errors*scale, edges

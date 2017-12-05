@@ -15,6 +15,7 @@ __all__ = ['Plot',
            'decl_plot',
            'grid_plot',
            'render_plots',
+           'generate_dashboard',
            'hist_plot',
            'hist_plot_stack',
            'hist2d_plot']
@@ -76,6 +77,42 @@ def decl_plot(fn):
         return argdict, docs
 
     return f
+
+
+def generate_dashboard(plots, title, output='dashboard.htm', source_file=None):
+    from jinja2 import Environment, PackageLoader, select_autoescape
+    from os.path import join
+    from urllib.parse import quote
+
+    env = Environment(
+        loader=PackageLoader('plots', 'templates'),
+        autoescape=select_autoescape(['htm', 'html', 'xml']),
+    )
+    env.globals.update({'quote': quote,
+                        'enumerate': enumerate,
+                        'zip': zip,
+                        })
+
+    def render_to_file(template_name, **kwargs):
+        with open(join('output', output), 'w') as tempout:
+            template = env.get_template(template_name)
+            tempout.write(template.render(**kwargs))
+
+    def get_by_n(objs, n=2):
+        objs = list(objs)
+        while objs:
+            yield objs[:n]
+            objs = objs[n:]
+
+    if source_file is not None:
+        with open(source_file, 'r') as this_file:
+            source = this_file.read()
+    else:
+        source = "# Not supplied!!"
+
+    render_to_file('dashboard.htm', plots=get_by_n(plots, 3),
+                   title=title, source=source,
+                   outdir="figures/")
 
 
 def _add_stats(hist, title=''):
@@ -288,7 +325,7 @@ def hist_plot_stack(hists: list, labels: list = None):
         widths = []
         heights = []
         for left, right, content in zip(hist[2][:-1], hist[2][1:], hist[0]):
-            centers.append((right+left)/2)
+            centers.append((right + left) / 2)
             widths.append(right - left)
             heights.append(content)
 
