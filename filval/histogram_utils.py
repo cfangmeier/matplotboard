@@ -91,11 +91,14 @@ def hist_integral(hist, times_bin_width=True):
     else:
         return sum(values)
 
+def hist_scale(hist, scale):
+    values, errors, edges = hist
+    return values*scale, errors*scale, edges
 
 def hist_normalize(hist, norm = 1):
-    values, errors, edges = hist
-    scale = norm/np.sum(values)
-    return values*scale, errors*scale, edges
+    scale = norm/np.sum(hist[0])
+    return hist_scale(hist, scale)
+
 
 
 def hist_mean(hist):

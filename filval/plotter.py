@@ -234,7 +234,7 @@ def add_decorations(axes, luminosity, energy):
 
 def hist_plot(h, *args, norm=None, include_errors=False,
               log=False, xlim=None, ylim=None, fit=None,
-              grid=False, stats=True, **kwargs):
+              grid=False, stats=False, **kwargs):
     """ Plots a 1D ROOT histogram object using matplotlib """
     from inspect import signature
     if norm:
