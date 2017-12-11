@@ -16,4 +16,5 @@ setup(
     scripts=['scripts/merge.py',
              'scripts/process_parallel.py'
              ],
+    package_data={'filval': ['templates/*.j2']},
 )

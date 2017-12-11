@@ -79,13 +79,13 @@ def decl_plot(fn):
     return f
 
 
-def generate_dashboard(plots, title, output='dashboard.htm', source_file=None):
+def generate_dashboard(plots, title, output='dashboard.html', template='dashboard.j2', source_file=None):
     from jinja2 import Environment, PackageLoader, select_autoescape
     from os.path import join
     from urllib.parse import quote
 
     env = Environment(
-        loader=PackageLoader('plots', 'templates'),
+        loader=PackageLoader('filval', 'templates'),
         autoescape=select_autoescape(['htm', 'html', 'xml']),
     )
     env.globals.update({'quote': quote,
@@ -93,16 +93,11 @@ def generate_dashboard(plots, title, output='dashboard.htm', source_file=None):
                         'zip': zip,
                         })
 
-    def render_to_file(template_name, **kwargs):
-        with open(join('output', output), 'w') as tempout:
-            template = env.get_template(template_name)
-            tempout.write(template.render(**kwargs))
-
-    def get_by_n(objs, n=2):
-        objs = list(objs)
-        while objs:
-            yield objs[:n]
-            objs = objs[n:]
+    def get_by_n(objects, n=2):
+        objects = list(objects)
+        while objects:
+            yield objects[:n]
+            objects = objects[n:]
 
     if source_file is not None:
         with open(source_file, 'r') as this_file:
@@ -110,9 +105,14 @@ def generate_dashboard(plots, title, output='dashboard.htm', source_file=None):
     else:
         source = "# Not supplied!!"
 
-    render_to_file('dashboard.htm', plots=get_by_n(plots, 3),
-                   title=title, source=source,
-                   outdir="figures/")
+    with open(join('output', output), 'w') as tempout:
+        templ = env.get_template(template)
+        tempout.write(templ.render(
+            plots=get_by_n(plots, 3),
+            title=title,
+            source=source,
+            outdir="figures/"
+        ))
 
 
 def _add_stats(hist, title=''):
