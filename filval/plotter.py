@@ -200,7 +200,7 @@ def render_plots(plots, exts=('png',), scale=1.0, to_disk=True):
         print(f'Building plot {plot.name}')
         plot.data = None
         if to_disk:
-            with lp.figure(plot.name, directory='output/figures',
+            with lp.figure(plot.name.replace(' ', '_'), directory='output/figures',
                            exts=exts,
                            size=(scale * 10, scale * 10)):
                 argdicts, docs = grid_plot(plot.subplots)
