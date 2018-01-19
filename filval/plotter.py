@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from collections import defaultdict
+from itertools import zip_longest
 from io import BytesIO
 from base64 import b64encode
 import numpy as np
@@ -18,7 +19,8 @@ __all__ = ['Plot',
            'generate_dashboard',
            'hist_plot',
            'hist_plot_stack',
-           'hist2d_plot']
+           'hist2d_plot',
+           'hists_to_table']
 
 
 class Plot:
@@ -51,9 +53,10 @@ lp.latexify(params={'pgf.texsystem': 'pdflatex',
 
 def _fn_call_to_dict(fn, *args, **kwargs):
     from inspect import signature
+    from html import escape
     pnames = list(signature(fn).parameters)
     pvals = list(args) + list(kwargs.values())
-    return {k: v for k, v in zip(pnames, pvals)}
+    return {escape(str(k)): escape(str(v)) for k, v in zip(pnames, pvals)}
 
 
 def _process_docs(fn):
@@ -70,16 +73,19 @@ def decl_plot(fn):
 
     @wraps(fn)
     def f(*args, **kwargs):
-        fn(*args, **kwargs)
+        txt = fn(*args, **kwargs)
         argdict = _fn_call_to_dict(fn, *args, **kwargs)
         docs = _process_docs(fn)
+        if not txt:
+            txt = ''
+        txt = MD.convert(txt)
 
-        return argdict, docs
+        return argdict, docs, txt
 
     return f
 
 
-def generate_dashboard(plots, title, output='dashboard.html', template='dashboard.j2', source_file=None):
+def generate_dashboard(plots, title, output='dashboard.html', template='dashboard.j2', source_file=None, ana_source=None):
     from jinja2 import Environment, PackageLoader, select_autoescape
     from os.path import join
     from urllib.parse import quote
@@ -111,7 +117,7 @@ def generate_dashboard(plots, title, output='dashboard.html', template='dashboar
             plots=get_by_n(plots, 3),
             title=title,
             source=source,
-            outdir="figures/"
+            ana_source=ana_source
         ))
 
 
@@ -146,22 +152,22 @@ def _add_stats(hist, title=''):
 
 def grid_plot(subplots):
     if any(len(row) != len(subplots[0]) for row in subplots):
-        raise ValueError("make_plot requires a rectangular list-of-lists as "
-                         "input. Fill empty slots with None")
+        raise ValueError('make_plot requires a rectangular list-of-lists as '
+                         'input. Fill empty slots with None')
 
-    def calc_rowspan(fig, row, col):
+    def calc_row_span(fig, row, col):
         span = 1
         for r in range(row + 1, len(fig)):
-            if fig[r][col] == "FU":
+            if fig[r][col] == 'FU':
                 span += 1
             else:
                 break
         return span
 
-    def calc_colspan(fig, row, col):
+    def calc_column_span(fig, row, col):
         span = 1
         for c in range(col + 1, len(fig[row])):
-            if fig[row][c] == "FL":
+            if fig[row][c] == 'FL':
                 span += 1
             else:
                 break
@@ -172,23 +178,33 @@ def grid_plot(subplots):
 
     argdicts = defaultdict(list)
     docs = defaultdict(list)
+    txts = defaultdict(list)
     for i in range(rows):
         for j in range(cols):
             cell = subplots[i][j]
-            if cell in ("FL", "FU", None):
+            if cell in ('FL', 'FU', None):
                 continue
             if not isinstance(cell, list):
                 cell = [cell]
-            colspan = calc_colspan(subplots, i, j)
-            rowspan = calc_rowspan(subplots, i, j)
+            column_span = calc_column_span(subplots, i, j)
+            row_span = calc_row_span(subplots, i, j)
             plt.subplot2grid((rows, cols), (i, j),
-                             colspan=colspan, rowspan=rowspan)
+                             colspan=column_span, rowspan=row_span)
             for plot in cell:
-                plot_fn, args, kwargs = plot
-                this_args, this_docs = plot_fn(*args, **kwargs)
+                if len(plot) == 1:
+                    plot_fn, args, kwargs = plot[0], (), {}
+                elif len(plot) == 2:
+                    plot_fn, args, kwargs = plot[0], plot[1], {}
+                elif len(plot) == 3:
+                    plot_fn, args, kwargs = plot[0], plot[1], plot[2]
+                else:
+                    raise ValueError('Plot tuple must be of format (func), '
+                                     f'or (func, tuple), or (func, tuple, dict). Got {plot}')
+                this_args, this_docs, txt = plot_fn(*args, **kwargs)
                 argdicts[(i, j)].append(this_args)
                 docs[(i, j)].append(this_docs)
-    return argdicts, docs
+                txts[(i, j)].append(txt)
+    return argdicts, docs, txts
 
 
 def render_plots(plots, exts=('png',), scale=1.0, to_disk=True):
@@ -199,17 +215,18 @@ def render_plots(plots, exts=('png',), scale=1.0, to_disk=True):
             with lp.figure(plot.name, directory='output/figures',
                            exts=exts,
                            size=(scale * 10, scale * 10)):
-                argdicts, docs = grid_plot(plot.subplots)
+                argdicts, docs, txts = grid_plot(plot.subplots)
         else:
             out = BytesIO()
             with lp.mem_figure(out,
                                ext=exts[0],
                                size=(scale * 10, scale * 10)):
-                argdicts, docs = grid_plot(plot.subplots)
+                argdicts, docs, txts = grid_plot(plot.subplots)
             out.seek(0)
             plot.data = b64encode(out.read()).decode()
         plot.argdicts = argdicts
         plot.docs = docs
+        plot.txts = txts
 
 
 def add_decorations(axes, luminosity, energy):
@@ -332,3 +349,23 @@ def hist_plot_stack(hists: list, labels: list = None):
         plt.bar(centers, heights, widths, bottoms, label=label)
         for i, content in enumerate(hist[0]):
             bottoms[i] += content
+
+
+def hists_to_table(hists, row_labels=(), column_labels=(), format="{:.2f}"):
+    table = ['<table class="table table-condensed">']
+    if column_labels:
+        table.append('<thead><tr>')
+        if row_labels:
+            table.append('<th></th>')
+        table.extend(f'<th>{label}</th>' for label in column_labels)
+        table.append('</tr></thead>')
+    table.append('<tbody>\n')
+    for row_label, (vals, *_) in zip_longest(row_labels, hists):
+        table.append('<tr>')
+        if row_label:
+            table.append(f'<td><strong>{row_label}</strong></td>')
+        table.extend(('<td>'+format.format(val)+'</td>') for val in vals)
+        table.append('</tr>\n')
+    table.append('</tbody></table>')
+    return ''.join(table)
+

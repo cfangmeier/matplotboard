@@ -40,18 +40,19 @@ MathJax.Hub.Config({
         </div>
         <div class="caption">
           <p class="text-center"> {{ plot.name }} </p>
-          <div class="panel-group" id="accordion">
+          <div class="panel-group" id="accordion{{ r }}{{ c }}">
     {% for id, (i,j) in enumerate(plot.docs.keys()) %}
             <div class="panel-heading">
               <h4 class="panel-title">
-                <button data-toggle="collapse" data-parent="#accordion" class="btn btn-info" href="#collapse{{r}}-{{c}}-{{id}}">
-                  Plot at ({{i+1}}, {{j+1}})</button>
+                <button data-toggle="collapse" data-parent="#accordion{{ r }}{{ c }}" class="btn btn-info" href="#collapse{{r}}-{{c}}-{{id}}">
+                  Plot at ({{ i+1 }}, {{ j+1 }})</button>
               </h4>
             </div>
             <div id="collapse{{r}}-{{c}}-{{id}}" class="panel-collapse collapse">
               <div class="panel-body">
-      {% for doc, argdict in zip(plot.docs[(i,j)], plot.argdicts[(i,j)]) %}
-                <p class="text-left">{{ doc|safe }}</p>
+      {% for doc, argdict, txt in zip(plot.docs[(i,j)], plot.argdicts[(i,j)], plot.txts[(i,j)]) %}
+                <div class="text-left">{{ doc|safe }}</div>
+                <div class="text-left">{{ txt|safe }}</div>
                 <hr>
                 <p class="text-left"><strong>Plot Arguments</strong></p>
                 <table class="table table-hover">
@@ -80,6 +81,9 @@ MathJax.Hub.Config({
         <div class="panel-heading">
           <h4 class="panel-title" style="text-align:center">
             <button data-toggle="collapse" data-parent="#accordion" class="btn btn-default" href="#collapseSrc">Figure Source Code</button>
+            {% if ana_source %}
+            <a class="btn btn-default" href="{{ ana_source }}" target="_blank">Analysis Source Code</a>
+            {% endif %}
           </h4>
         </div>
         <div id="collapseSrc" class="panel-collapse collapse">
