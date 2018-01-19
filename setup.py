@@ -3,8 +3,6 @@ from setuptools import setup
 with open('requirements.txt') as req:
     install_requires = [l.strip() for l in req.readlines()]
 
-print(install_requires)
-
 setup(
     name='filval',
     version='0.1',

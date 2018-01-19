@@ -87,7 +87,8 @@ def decl_plot(fn):
 
 def generate_dashboard(plots, title, output='dashboard.html', template='dashboard.j2', source_file=None, ana_source=None):
     from jinja2 import Environment, PackageLoader, select_autoescape
-    from os.path import join
+    from os.path import join, isdir
+    from os import mkdir
     from urllib.parse import quote
 
     env = Environment(
@@ -110,6 +111,9 @@ def generate_dashboard(plots, title, output='dashboard.html', template='dashboar
             source = this_file.read()
     else:
         source = "# Not supplied!!"
+
+    if not isdir('output'):
+        mkdir('output')
 
     with open(join('output', output), 'w') as tempout:
         templ = env.get_template(template)
@@ -212,7 +216,7 @@ def render_plots(plots, exts=('png',), scale=1.0, to_disk=True):
         print(f'Building plot {plot.name}')
         plot.data = None
         if to_disk:
-            with lp.figure(plot.name, directory='output/figures',
+            with lp.figure(plot.name.replace(' ', '_'), directory='output/figures',
                            exts=exts,
                            size=(scale * 10, scale * 10)):
                 argdicts, docs, txts = grid_plot(plot.subplots)

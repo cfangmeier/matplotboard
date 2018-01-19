@@ -42,6 +42,7 @@ def hist2d(th2, rescale_x=1.0, rescale_y=1.0, rescale_z=1.0):
     """
     nbins_x = th2.GetNbinsX()
     nbins_y = th2.GetNbinsY()
+    print(nbins_x, nbins_y)
     xs = np.zeros((nbins_y+1, nbins_x+1), np.float32)
     ys = np.zeros((nbins_y+1, nbins_x+1), np.float32)
     values = np.zeros((nbins_y, nbins_x), np.float32)
@@ -52,11 +53,11 @@ def hist2d(th2, rescale_x=1.0, rescale_y=1.0, rescale_z=1.0):
             ys[j][i] = th2.GetYaxis().GetBinLowEdge(j+1)
             values[j][i] = th2.GetBinContent(i+1, j+1)
             errors[j][i] = th2.GetBinError(i+1, j+1)
-        xs[nbins_y][i] = th2.GetXaxis().GetBinUpEdge(i+1)
-        ys[nbins_y][i] = th2.GetYaxis().GetBinUpEdge(nbins_y+1)
+        xs[nbins_y][i] = th2.GetXaxis().GetBinUpEdge(i)
+        ys[nbins_y][i] = th2.GetYaxis().GetBinUpEdge(nbins_y)
     for j in range(nbins_y+1):
-        xs[j][nbins_x] = th2.GetXaxis().GetBinUpEdge(nbins_x+1)
-        ys[j][nbins_x] = th2.GetYaxis().GetBinUpEdge(j+1)
+        xs[j][nbins_x] = th2.GetXaxis().GetBinUpEdge(nbins_x)
+        ys[j][nbins_x] = th2.GetYaxis().GetBinUpEdge(j)
 
     xs *= rescale_x
     ys *= rescale_y
