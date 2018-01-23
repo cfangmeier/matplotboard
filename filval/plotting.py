@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+"""
+    plotting.py
+    The functions in this module are meant for plotting the histogram objects created via
+    filval.histogram
+"""
 
 from collections import defaultdict
 from itertools import zip_longest
@@ -9,8 +13,8 @@ import matplotlib.pyplot as plt
 from markdown import Markdown
 import latexipy as lp
 
-from filval.histogram_utils import (hist, hist2d, hist_bin_centers, hist_fit,
-                                    hist_normalize, hist_stats)
+from filval.histogram import (hist, hist2d, hist_bin_centers, hist_fit,
+                              hist_norm, hist_stats)
 
 __all__ = ['Plot',
            'decl_plot',
@@ -115,7 +119,8 @@ def generate_dashboard(plots, title, output='dashboard.html', template='dashboar
     if not isdir('output'):
         mkdir('output')
 
-    with open(join('output', output), 'w') as tempout:
+    dashboard_path = join('output', output)
+    with open(dashboard_path, 'w') as tempout:
         templ = env.get_template(template)
         tempout.write(templ.render(
             plots=get_by_n(plots, 3),
@@ -123,6 +128,7 @@ def generate_dashboard(plots, title, output='dashboard.html', template='dashboar
             source=source,
             ana_source=ana_source
         ))
+    return dashboard_path
 
 
 def _add_stats(hist, title=''):
@@ -259,7 +265,7 @@ def hist_plot(h, *args, norm=None, include_errors=False,
     """ Plots a 1D ROOT histogram object using matplotlib """
     from inspect import signature
     if norm:
-        h = hist_normalize(h, norm)
+        h = hist_norm(h, norm)
     values, errors, edges = h
 
     scale = 1. if norm is None else norm / np.sum(values)
@@ -307,7 +313,7 @@ def hist_plot(h, *args, norm=None, include_errors=False,
     ax.grid(grid, color='#E0E0E0')
 
 
-def hist2d_plot(h, **kwargs):
+def hist2d_plot(h, txt_format=None, colorbar=False, **kwargs):
     """ Plots a 2D ROOT histogram object using matplotlib """
     try:
         values, errors, xs, ys = h
@@ -317,8 +323,26 @@ def hist2d_plot(h, **kwargs):
     plt.xlabel(kwargs.pop('xlabel', ''))
     plt.ylabel(kwargs.pop('ylabel', ''))
     plt.title(kwargs.pop('title', ''))
-    plt.pcolormesh(xs, ys, values, )
-    # axes.colorbar() TODO: Re-enable this
+    plt.pcolormesh(xs, ys, values, **kwargs)
+    if txt_format is not None:
+        cmap = plt.get_cmap()
+        min_, max_ = float(np.min(values)), float(np.max(values))
+
+        def get_intensity(val):
+            cmap_idx = int((cmap.N-1) * (val - min_) / (max_-min_))
+            color = cmap.colors[cmap_idx]
+            return color[0]*0.25 + color[1]*0.5 + color[2]*0.25
+
+        for idx_row in range(values.shape[0]):
+            for idx_col in range(values.shape[1]):
+                x_mid = (xs[idx_row, idx_col] + xs[idx_row, idx_col+1]) / 2
+                y_mid = (ys[idx_row, idx_col] + ys[idx_row+1, idx_col]) / 2
+                val = txt_format.format(values[idx_row, idx_col])
+                txt_color = 'w' if get_intensity(values[idx_row, idx_col]) < 0.5 else 'k'
+                plt.text(x_mid, y_mid, val, verticalalignment='center', horizontalalignment='center',
+                         color=txt_color, fontsize=12)
+    if colorbar:
+        plt.colorbar()
 
 
 def hist_plot_stack(hists: list, labels: list = None):
