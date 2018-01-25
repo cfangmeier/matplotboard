@@ -10,6 +10,7 @@
 
   <script src="https://tttt.fangmeier.tech/hl/shCore.js"         type="text/javascript"></script>
   <script src="https://tttt.fangmeier.tech/hl/shBrushPython.js" type="text/javascript"></script>
+    <script src="https://tttt.fangmeier.tech/hl/shBrushPlain.js" type="text/javascript"></script>
   <link href="https://tttt.fangmeier.tech/hl/shCore.css"          rel="stylesheet" type="text/css" />
   <link href="https://tttt.fangmeier.tech/hl/shThemeDefault.css"  rel="stylesheet" type="text/css" />
   <script src="https://tttt.fangmeier.tech/hl/shAutoloader.js" type="text/javascript"></script>
@@ -80,17 +81,31 @@ MathJax.Hub.Config({
       <div class="panel-group" id="accordion">
         <div class="panel-heading">
           <h4 class="panel-title" style="text-align:center">
+            {% if config %}
+            <button data-toggle="collapse" data-parent="#accordion" class="btn btn-default" href="#collapseConfig">Analysis Configuration</button>
+            {% endif %}
+            {% if source %}
             <button data-toggle="collapse" data-parent="#accordion" class="btn btn-default" href="#collapseSrc">Figure Source Code</button>
+            {% endif %}
             {% if ana_source %}
             <a class="btn btn-default" href="{{ ana_source }}" target="_blank">Analysis Source Code</a>
             {% endif %}
           </h4>
         </div>
+      {% if config %}
+          <div id="collapseConfig" class="panel-collapse collapse">
+              <div class="panel-body">
+                  <script type="syntaxhighlighter" class="brush: plain"><![CDATA[ {{ config|safe}} ]]></script>
+              </div>
+          </div>
+      {% endif %}
+      {% if source %}
         <div id="collapseSrc" class="panel-collapse collapse">
           <div class="panel-body">
 <script type="syntaxhighlighter" class="brush: python"><![CDATA[ {{ source|safe}} ]]></script>
           </div>
         </div>
+      {% endif %}
       </div>
     </div>
   </div>

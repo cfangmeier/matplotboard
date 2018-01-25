@@ -89,7 +89,8 @@ def decl_plot(fn):
     return f
 
 
-def generate_dashboard(plots, title, output='dashboard.html', template='dashboard.j2', source_file=None, ana_source=None):
+def generate_dashboard(plots, title, output='dashboard.html', template='dashboard.j2',
+                       source=None, ana_source=None, config=None):
     from jinja2 import Environment, PackageLoader, select_autoescape
     from os.path import join, isdir
     from os import mkdir
@@ -110,11 +111,13 @@ def generate_dashboard(plots, title, output='dashboard.html', template='dashboar
             yield objects[:n]
             objects = objects[n:]
 
-    if source_file is not None:
-        with open(source_file, 'r') as this_file:
-            source = this_file.read()
-    else:
-        source = "# Not supplied!!"
+    if source is not None:
+        with open(source, 'r') as f:
+            source = f.read()
+
+    if config is not None:
+        with open(config, 'r') as f:
+            config = f.read()
 
     if not isdir('output'):
         mkdir('output')
@@ -126,7 +129,8 @@ def generate_dashboard(plots, title, output='dashboard.html', template='dashboar
             plots=get_by_n(plots, 3),
             title=title,
             source=source,
-            ana_source=ana_source
+            ana_source=ana_source,
+            config=config
         ))
     return dashboard_path
 
