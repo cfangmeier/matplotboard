@@ -24,11 +24,16 @@ __all__ = ['Plot',
            'hist_plot',
            'hist_plot_stack',
            'hist2d_plot',
-           'hists_to_table']
+           'hists_to_table',
+           'simple_plot']
 
 
 class Plot:
     def __init__(self, subplots, name, title=None, docs="N/A", arg_dicts=None):
+        if type(subplots) is not list:
+            subplots = [[subplots]]
+        elif len(subplots) > 0 and type(subplots[0]) is not list:
+            subplots = [subplots]
         self.subplots = subplots
         self.name = name
         self.title = title
@@ -89,6 +94,29 @@ def decl_plot(fn):
     return f
 
 
+def simple_plot(thx):
+    import ROOT
+
+    if isinstance(thx, ROOT.TH2):
+        def f(h):
+            hist2d_plot(hist2d(h))
+            plt.xlabel(h.GetXaxis().GetTitle())
+            plt.ylabel(h.GetYaxis().GetTitle())
+            return dict(), "", ""
+
+        return Plot([[(f, (thx,), {})]], thx.GetName())
+    elif isinstance(thx, ROOT.TH1):
+        def f(h):
+            hist_plot(hist(h))
+            plt.xlabel(h.GetXaxis().GetTitle())
+            plt.ylabel(h.GetYaxis().GetTitle())
+            return dict(), "", ""
+
+        return Plot([[(f, (thx,), {})]], thx.GetName())
+    else:
+        raise ValueError("must call simple_plot with a ROOT TH1 or TH2 object")
+
+
 def generate_dashboard(plots, title, output='dashboard.html', template='dashboard.j2',
                        source=None, ana_source=None, config=None):
     from jinja2 import Environment, PackageLoader, select_autoescape
@@ -114,10 +142,6 @@ def generate_dashboard(plots, title, output='dashboard.html', template='dashboar
     if source is not None:
         with open(source, 'r') as f:
             source = f.read()
-
-    if config is not None:
-        with open(config, 'r') as f:
-            config = f.read()
 
     if not isdir('output'):
         mkdir('output')

@@ -1,6 +1,6 @@
 import ROOT
 
-from filval.plotter import hist_plot, hist2d_plot
+from filval.plotting import hist_plot, hist2d_plot
 from numpy import ceil
 
 
@@ -9,20 +9,26 @@ class ResultSet:
     def __init__(self, sample_name, input_filename):
         self.sample_name = sample_name
         self.input_filename = input_filename
+        self.values = {}
+        self.map = {}
+        self.config = None
         self.load_objects()
 
         ResultSet.add_collection(self)
 
     def load_objects(self):
         file = ROOT.TFile.Open(self.input_filename)
-        l = file.GetListOfKeys()
-        self.map = {}
         try:
             self.values = dict(file.Get("_value_lookup"))
-        except Exception:
-            self.values = {}
-        for i in range(l.GetSize()):
-            name = l.At(i).GetName()
+        except TypeError:
+            pass
+        try:
+            self.config = str(file.Get("_config").GetString())
+        except TypeError:
+            pass
+        list_of_keys = file.GetListOfKeys()
+        for i in range(list_of_keys.GetSize()):
+            name = list_of_keys.At(i).GetName()
             new_name = ":".join((self.sample_name, name))
             obj = file.Get(name)
             try:
