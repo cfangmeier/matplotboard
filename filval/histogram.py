@@ -130,10 +130,10 @@ def hist2d(th2, rescale_x=1.0, rescale_y=1.0, rescale_z=1.0):
     """
     nbins_x = th2.GetNbinsX()
     nbins_y = th2.GetNbinsY()
-    xs = np.zeros((nbins_y+1, nbins_x+1), np.float32)
-    ys = np.zeros((nbins_y+1, nbins_x+1), np.float32)
-    values = np.zeros((nbins_y, nbins_x), np.float32)
-    errors = np.zeros((nbins_y, nbins_x), np.float32)
+    xs = np.zeros((nbins_y+1, nbins_x+1), dtype=np.float32)
+    ys = np.zeros((nbins_y+1, nbins_x+1), dtype=np.float32)
+    values = np.zeros((nbins_y, nbins_x), dtype=np.float32)
+    errors = np.zeros((nbins_y, nbins_x), dtype=np.float32)
     for i in range(nbins_x):
         for j in range(nbins_y):
             xs[j][i] = th2.GetXaxis().GetBinLowEdge(i+1)
@@ -163,7 +163,8 @@ def hist2d_norm(h, norm=1, axis=None):
     :return: The normalized histogram
     """
     values, errors, xs, ys = h
-    with np.errstate(divide='ignore'):
+    with np.warnings.catch_warnings():
+        np.warnings.filterwarnings('ignore', 'invalid value encountered in true_divide')
         scale_values = norm / np.sum(values, axis=axis)
         scale_values[scale_values == np.inf] = 1
         scale_values[scale_values == -np.inf] = 1
@@ -173,4 +174,30 @@ def hist2d_norm(h, norm=1, axis=None):
     errors = errors * scale_values
     return values, errors, xs.copy(), ys.copy()
 
+
+def hist2d_percent_contour(h, percent: float, axis: str):
+    values, _, xs, ys = h
+
+    try:
+        axis = axis.lower()
+        axis_idx = {'x': 1, 'y': 0}[axis]
+    except KeyError:
+        raise ValueError('axis must be \'x\' or \'y\'')
+    if percent < 0 or percent > 1:
+        raise ValueError('percent must be in [0,1]')
+
+    with np.warnings.catch_warnings():
+        np.warnings.filterwarnings('ignore', 'invalid value encountered in true_divide')
+        values = values / np.sum(values, axis=axis_idx, keepdims=True)
+        np.nan_to_num(values, copy=False)
+    values = np.cumsum(values, axis=axis_idx)
+    idxs = np.argmax(values > percent, axis=axis_idx)
+
+    bins_y = (ys[:-1, 0] + ys[1:, 0])/2
+    bins_x = (xs[0, :-1] + xs[0, 1:])/2
+
+    if axis == 'x':
+        return bins_x[idxs], bins_y
+    else:
+        return bins_x, bins_y[idxs]
 

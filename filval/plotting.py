@@ -94,22 +94,34 @@ def decl_plot(fn):
     return f
 
 
-def simple_plot(thx):
+def simple_plot(thx, *args, log=None, **kwargs):
     import ROOT
 
     if isinstance(thx, ROOT.TH2):
         def f(h):
-            hist2d_plot(hist2d(h))
+            hist2d_plot(hist2d(h), *args, **kwargs)
             plt.xlabel(h.GetXaxis().GetTitle())
             plt.ylabel(h.GetYaxis().GetTitle())
+            if log == 'x':
+                plt.semilogx()
+            elif log == 'y':
+                plt.semilogy()
+            elif log == 'xy':
+                plt.loglog()
             return dict(), "", ""
 
         return Plot([[(f, (thx,), {})]], thx.GetName())
     elif isinstance(thx, ROOT.TH1):
         def f(h):
-            hist_plot(hist(h))
+            hist_plot(hist(h), *args, **kwargs)
             plt.xlabel(h.GetXaxis().GetTitle())
             plt.ylabel(h.GetYaxis().GetTitle())
+            if log == 'x':
+                plt.semilogx()
+            elif log == 'y':
+                plt.semilogy()
+            elif log == 'xy':
+                plt.loglog()
             return dict(), "", ""
 
         return Plot([[(f, (thx,), {})]], thx.GetName())
@@ -287,58 +299,35 @@ def add_decorations(axes, luminosity, energy):
               transform=axes.transAxes)
 
 
-def hist_plot(h, *args, norm=None, include_errors=False,
-              log=False, xlim=None, ylim=None, fit=None,
-              grid=False, stats=False, **kwargs):
+def hist_plot(h, *args, include_errors=False, fit=None, stats=False, **kwargs):
     """ Plots a 1D ROOT histogram object using matplotlib """
     from inspect import signature
-    if norm:
-        h = hist_norm(h, norm)
     values, errors, edges = h
-
-    scale = 1. if norm is None else norm / np.sum(values)
-    values = [val * scale for val in values]
-    errors = [val * scale for val in errors]
 
     left, right = np.array(edges[:-1]), np.array(edges[1:])
     x = np.array([left, right]).T.flatten()
     y = np.array([values, values]).T.flatten()
 
-    ax = plt.gca()
-
-    ax.set_xlabel(kwargs.pop('xlabel', ''))
-    ax.set_ylabel(kwargs.pop('ylabel', ''))
     title = kwargs.pop('title', '')
-    if xlim is not None:
-        ax.set_xlim(xlim)
-    if ylim is not None:
-        ax.set_ylim(ylim)
-    # elif not log:
-    #     axes.set_ylim((0, None))
 
-    ax.plot(x, y, *args, linewidth=1, **kwargs)
+    plt.plot(x, y, *args, linewidth=1, **kwargs)
     if include_errors:
-        ax.errorbar(hist_bin_centers(h), values, yerr=errors,
-                    color='k', marker=None, linestyle='None',
-                    barsabove=True, elinewidth=.7, capsize=1)
-    if log:
-        ax.set_yscale('log')
+        plt.errorbar(hist_bin_centers(h), values, yerr=errors,
+                     color='k', marker=None, linestyle='None',
+                     barsabove=True, elinewidth=.7, capsize=1)
     if fit:
         f, p0 = fit
         popt, pcov = hist_fit(h, f, p0)
         fit_xs = np.linspace(x[0], x[-1], 100)
         fit_ys = f(fit_xs, *popt)
-        ax.plot(fit_xs, fit_ys, '--g')
+        plt.plot(fit_xs, fit_ys, '--g')
         arglabels = list(signature(f).parameters)[1:]
         label_txt = "\n".join('{:7s}={: 0.2G}'.format(label, value)
                               for label, value in zip(arglabels, popt))
-        ax.text(0.60, 0.95, label_txt, va='top', transform=ax.transAxes,
-                fontsize='medium', family='monospace', usetex=False)
+        plt.text(0.60, 0.95, label_txt, va='top', transform=plt.gca().transAxes,
+                 fontsize='medium', family='monospace', usetex=False)
     if stats:
         _add_stats(h, title)
-    else:
-        ax.set_title(title)
-    ax.grid(grid, color='#E0E0E0')
 
 
 def hist2d_plot(h, txt_format=None, colorbar=False, **kwargs):
