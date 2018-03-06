@@ -24,7 +24,7 @@ class ResultSet:
             pass
         try:
             self.config = str(file.Get("_config").GetString())
-        except TypeError:
+        except (TypeError, AttributeError):
             pass
         list_of_keys = file.GetListOfKeys()
         for i in range(list_of_keys.GetSize()):

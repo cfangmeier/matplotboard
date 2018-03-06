@@ -241,7 +241,9 @@ def grid_plot(subplots):
             plt.subplot2grid((rows, cols), (i, j),
                              colspan=column_span, rowspan=row_span)
             for plot in cell:
-                if len(plot) == 1:
+                if not isinstance(plot, tuple):
+                    plot_fn, args, kwargs = plot, (), {}
+                elif len(plot) == 1:
                     plot_fn, args, kwargs = plot[0], (), {}
                 elif len(plot) == 2:
                     plot_fn, args, kwargs = plot[0], plot[1], {}
