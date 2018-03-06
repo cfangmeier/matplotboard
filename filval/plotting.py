@@ -257,12 +257,12 @@ def grid_plot(subplots):
     return argdicts, docs, txts
 
 
-def render_plots(plots, exts=('png',), scale=1.0, to_disk=True):
+def render_plots(plots, exts=('png',), directory='output/figures/', scale=1.0, to_disk=True):
     for plot in plots:
         print(f'Building plot {plot.name}')
         plot.data = None
         if to_disk:
-            with lp.figure(plot.name.replace(' ', '_'), directory='output/figures',
+            with lp.figure(plot.name.replace(' ', '_'), directory=directory,
                            exts=exts,
                            size=(scale * 10, scale * 10)):
                 argdicts, docs, txts = grid_plot(plot.subplots)
