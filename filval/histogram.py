@@ -120,8 +120,37 @@ def hist_fit(h, f, p0=None):
     return popt, pcov
 
 
-def hist_rebin(h, range_, nbins):
-    raise NotImplementedError()
+def hist_rebin(h, nbins, min_, max_):
+    vals, errs, edges = h
+    low_edges = edges[:-1]
+    high_edges = edges[1:]
+    widths = edges[1:] - edges[:-1]
+
+    vals_new = np.zeros(nbins, dtype=vals.dtype)
+    errs_new = np.zeros(nbins, dtype=vals.dtype)  # TODO: properly propagate errors
+    edges_new = np.linspace(min_, max_, nbins+1, dtype=vals.dtype)
+
+    for i, (low, high) in enumerate(zip(edges_new[:-1], edges_new[1:])):
+        # wholly contained bins
+        b_idx = np.logical_and((low_edges >= low), (high_edges <= high)).nonzero()[0]
+        bin_sum = np.sum(vals[b_idx])
+        # internally contained
+        b_idx = np.logical_and((low_edges < low), (high_edges > high)).nonzero()[0]
+        bin_sum += np.sum(vals[b_idx])
+        # left edge
+        b_idx = np.logical_and((low_edges < high), (low_edges >= low), (high_edges > high)).nonzero()[0]
+        if len(b_idx) != 0:
+            idx = b_idx[0]
+            bin_sum += vals[idx]*(high - low_edges[idx])/widths[idx]
+        # right edge
+        b_idx = np.logical_and((high_edges > low), (low_edges < low), (high_edges <= high)).nonzero()[0]
+        if len(b_idx) != 0:
+            idx = b_idx[0]
+            bin_sum += vals[idx]*(high_edges[idx] - low)/widths[idx]
+
+        vals_new[i] = bin_sum
+
+    return vals_new, errs_new, edges_new
 
 
 def hist2d(th2, rescale_x=1.0, rescale_y=1.0, rescale_z=1.0):
@@ -200,4 +229,3 @@ def hist2d_percent_contour(h, percent: float, axis: str):
         return bins_x[idxs], bins_y
     else:
         return bins_x, bins_y[idxs]
-
