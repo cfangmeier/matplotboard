@@ -53,6 +53,37 @@ def hist_add(*hs):
     return np.sum(vals, axis=0), np.sqrt(np.sum([err*err for err in errs], axis=0)), edges[0]
 
 
+def hist_sub(*hs):
+    if len(hs) == 0:
+        return np.zeros(0)
+    h0, hs = hs
+    hs = hist_add(hs)
+    hs = -hs[0], *hs[1:]
+    return hist_add(h0, hs)
+
+
+def hist_mul(h1, h2, cov=None):
+    h1_vals, h1_errs, num_edges = h1
+    h2_vals, h2_errs, _ = h2
+    prod_vals = h1_vals * h2_vals
+    prod_errs2 = (h1_errs/h1_vals)**2 + (h2_errs/h2_vals)**2
+    if cov:
+        prod_errs2 += 2*cov/(h1_vals*h2_vals)
+    prod_errs = abs(h1_vals*h2_vals)*np.sqrt(prod_errs2)
+    return prod_vals, prod_errs, num_edges
+
+
+def hist_div(num, den, cov=None):
+    num_vals, num_errs, num_edges = num
+    den_vals, den_errs, _ = den
+    rat_vals = num_vals / den_vals
+    rat_errs2 = (num_errs/num_vals)**2 + (den_errs/den_vals)**2
+    if cov:
+        rat_errs2 -= 2*cov/(num_vals*den_vals)
+    rat_errs = abs(num_vals/den_vals)*np.sqrt(rat_errs2)
+    return rat_vals, rat_errs, num_edges
+
+
 def hist_integral(h, times_bin_width=True):
     values, errors, edges = h
     if times_bin_width:
