@@ -29,6 +29,11 @@ MathJax.Hub.Config({
     <div class="row">
         <a href="./" class="button"> Go Up <span class="glyphicon glyphicon-circle-arrow-left"></span> </a>
     </div>
+    {% if header %}
+    <div class="row">
+        {{ header|safe }}
+    </div>
+    {% endif %}
 {% for r, plot_row in enumerate(plots) %}
   <div class="row">
   {% for c, plot in enumerate(plot_row) %}
@@ -128,7 +133,7 @@ MathJax.Hub.Config({
 </div>
 </body>
 <style>
-.modal-dialog {width:900px;}
+.modal-dialog {width:90%;}
 .thumbnail {margin-bottom:6px;}
 .modal-title {text-align:center;}
 </style>

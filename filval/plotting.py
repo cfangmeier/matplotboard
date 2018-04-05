@@ -41,7 +41,7 @@ class Plot:
         self.arg_dicts = arg_dicts if arg_dicts is not None else {}
 
 
-MD = Markdown(extensions=['mdx_math'],
+MD = Markdown(extensions=['mdx_math', 'tables'],
               extension_configs={'mdx_math': {'enable_dollar_delimiter': True}})
 
 lp.latexify(params={'pgf.texsystem': 'pdflatex',
@@ -130,7 +130,7 @@ def simple_plot(thx, *args, log=None, **kwargs):
 
 
 def generate_dashboard(plots, title, output='dashboard.html', template='dashboard.j2',
-                       source=None, ana_source=None, config=None):
+                       source=None, ana_source=None, config=None, header=None):
     from jinja2 import Environment, PackageLoader, select_autoescape
     from os.path import join, isdir
     from os import mkdir
@@ -158,6 +158,9 @@ def generate_dashboard(plots, title, output='dashboard.html', template='dashboar
     if not isdir('output'):
         mkdir('output')
 
+    if header is not None:
+        header = MD.convert(header)
+
     dashboard_path = join('output', output)
     with open(dashboard_path, 'w') as tempout:
         templ = env.get_template(template)
@@ -166,7 +169,8 @@ def generate_dashboard(plots, title, output='dashboard.html', template='dashboar
             title=title,
             source=source,
             ana_source=ana_source,
-            config=config
+            config=config,
+            header=header,
         ))
     return dashboard_path
 
