@@ -53,3 +53,4 @@ fig::fast
 
     """)
 ```
+You can view the fantastic generated report [here](https://cfangmeier.github.io/matplotboard/report.html)
