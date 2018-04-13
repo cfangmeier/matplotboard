@@ -8,12 +8,12 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 
-  <script src="https://tttt.fangmeier.tech/hl/shCore.js"         type="text/javascript"></script>
-  <script src="https://tttt.fangmeier.tech/hl/shBrushPython.js" type="text/javascript"></script>
-  <script src="https://tttt.fangmeier.tech/hl/shBrushPlain.js" type="text/javascript"></script>
-  <link href="https://tttt.fangmeier.tech/hl/shCore.css"          rel="stylesheet" type="text/css" />
-  <link href="https://tttt.fangmeier.tech/hl/shThemeDefault.css"  rel="stylesheet" type="text/css" />
-  <script src="https://tttt.fangmeier.tech/hl/shAutoloader.js" type="text/javascript"></script>
+  <script src="./js/shCore.js"         type="text/javascript"></script>
+  <script src="./js/shBrushPython.js" type="text/javascript"></script>
+  <script src="./js/shBrushPlain.js" type="text/javascript"></script>
+  <link href="./css/shCore.css"          rel="stylesheet" type="text/css" />
+  <link href="./css/shThemeDefault.css"  rel="stylesheet" type="text/css" />
+  <script src="./js/shAutoloader.js" type="text/javascript"></script>
 
 <script type="text/x-mathjax-config">
 MathJax.Hub.Config({
@@ -23,67 +23,36 @@ MathJax.Hub.Config({
 });
 </script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_HTML-full"> </script>
+
+<style>
+    .modal-dialog {width:90%;}
+    .thumbnail {margin-bottom:6px;}
+    .modal-title {text-align:center;}
+    .figure-container {
+        max-width:35%;
+        padding-bottom: 0px;
+    }
+    .main-content {
+        padding-left: 30px;
+        padding-right: 30px;
+    }
+    .panel-group {
+        margin-bottom: 0px;
+    }
+</style>
+
 </head>
 <body>
 <div class="container-fluid">
     <div class="row">
         <a href="./" class="button"> Go Up <span class="glyphicon glyphicon-circle-arrow-left"></span> </a>
     </div>
-    {% if header %}
-    <div class="row">
-        {{ header|safe }}
+    <div class="row main-content">
+    {% block body %}
+        <h3>No body supplied</h3>
+    {% endblock %}
     </div>
-    {% endif %}
-{% for r, plot_row in enumerate(plots) %}
-  <div class="row">
-  {% for c, plot in enumerate(plot_row) %}
-    <div class="col-md-4">
-      <div class="well">
-    {% if plot.title %}
-        <h3 class="text-center">{{ plot.title }}</h3>
-    {% endif %}
-        <div>
-          <a href="#" title="{{ plot.name }}">
-            <img src="data:img/png;base64,{{ plot.data }}" style="width:100%" class="thumbnail img-responsive">
-          </a>
-        </div>
-        <div class="caption">
-          <p class="text-center"> {{ plot.name }} </p>
-          <div class="panel-group" id="accordion{{ r }}{{ c }}">
-    {% for id, (i,j) in enumerate(plot.docs.keys()) %}
-            <div class="panel-heading">
-              <h4 class="panel-title">
-                <button data-toggle="collapse" data-parent="#accordion{{ r }}{{ c }}" class="btn btn-info" href="#collapse{{r}}-{{c}}-{{id}}">
-                  Plot at ({{ i+1 }}, {{ j+1 }})</button>
-              </h4>
-            </div>
-            <div id="collapse{{r}}-{{c}}-{{id}}" class="panel-collapse collapse">
-              <div class="panel-body">
-      {% for doc, argdict, txt in zip(plot.docs[(i,j)], plot.argdicts[(i,j)], plot.txts[(i,j)]) %}
-                <div class="text-left">{{ doc|safe }}</div>
-                <div class="text-left">{{ txt|safe }}</div>
-                <hr>
-                <p class="text-left"><strong>Plot Arguments</strong></p>
-                <table class="table table-hover">
-                  <tbody>
-        {% for key, val in argdict.items() %}
-                    <tr>
-                      <td>{{ key }}</td> <td>{{ val }}</td>
-                    </tr>
-        {% endfor %}
-                  </tbody>
-                </table>
-      {% endfor %}
-              </div>
-            </div>
-    {% endfor %}
-          </div>
-        </div>
-      </div>
-    </div>
-  {% endfor %}
-  </div>
-{% endfor %}
+
   <div class="row">
     <div class="col-12-lg">
       <div class="panel-group" id="accordion">
@@ -93,13 +62,14 @@ MathJax.Hub.Config({
             <button data-toggle="collapse" data-parent="#accordion" class="btn btn-default" href="#collapseConfig">Analysis Configuration</button>
             {% endif %}
             {% if source %}
-            <button data-toggle="collapse" data-parent="#accordion" class="btn btn-default" href="#collapseSrc">Figure Source Code</button>
+            <button data-toggle="collapse" data-parent="#accordion" class="btn btn-default" href="#collapseSrc">Report Source Code</button>
             {% endif %}
             {% if ana_source %}
             <a class="btn btn-default" href="{{ ana_source }}" target="_blank">Analysis Source Code</a>
             {% endif %}
           </h4>
         </div>
+
       {% if config %}
           <div id="collapseConfig" class="panel-collapse collapse">
               <div class="panel-body">
@@ -107,6 +77,7 @@ MathJax.Hub.Config({
               </div>
           </div>
       {% endif %}
+
       {% if source %}
         <div id="collapseSrc" class="panel-collapse collapse">
           <div class="panel-body">
@@ -114,6 +85,7 @@ MathJax.Hub.Config({
           </div>
         </div>
       {% endif %}
+
       </div>
     </div>
   </div>
@@ -125,18 +97,12 @@ MathJax.Hub.Config({
         <button type="button" class="close" data-dismiss="modal">×</button>
         <h3 class="modal-title">Heading</h3>
       </div>
-      <div class="modal-body">
-
-      </div>
+      <div class="modal-body"> </div>
    </div>
   </div>
 </div>
 </body>
-<style>
-.modal-dialog {width:90%;}
-.thumbnail {margin-bottom:6px;}
-.modal-title {text-align:center;}
-</style>
+
 <script>
 $('.thumbnail').click(function(){
     $('.modal-body').empty();
@@ -147,4 +113,5 @@ $('.thumbnail').click(function(){
 });
 SyntaxHighlighter.all()
 </script>
+
 </html>

@@ -4,15 +4,15 @@ with open('requirements.txt') as req:
     install_requires = [l.strip() for l in req.readlines()]
 
 setup(
-    name='filval',
-    version='0.1',
+    name='matplotboard',
+    version='0.2.0',
     install_requires=install_requires,
     dependency_links=[
         "git+ssh://git@github.com/cfangmeier/latexipy.git#egg=latexipy"
     ],
-    packages=['filval'],
-    scripts=['scripts/merge.py',
-             'scripts/process_parallel.py'
-             ],
-    package_data={'filval': ['templates/*.j2']},
+    packages=['matplotboard'],
+    package_data={'matplotboard': ['templates/*.j2',
+                                   'static/css/*.css',
+                                   'static/js/*.js',
+                                   ]},
 )

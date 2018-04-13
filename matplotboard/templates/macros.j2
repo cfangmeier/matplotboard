@@ -1,0 +1,41 @@
+{% macro fig(plot, embed_figure=False) %}
+<div class="well center-block figure-container">
+  <div>
+    <a href="#" title="{{ plot.name }}">
+      {% if embed_figure %}
+      <img src="data:img/png;base64,{{ plot.data }}" class="thumbnail img-responsive">
+      {% else %}
+      <img src="./figures/{{ plot.name }}.png" class="thumbnail img-responsive">
+      {% endif %}
+    </a>
+  </div>
+  <div class="caption">
+    <p class="text-center"> {{ plot.name }} </p>
+    <div class="panel-group" id="accordion{{ r }}{{ c }}">
+      <div class="panel-heading">
+        <h4 class="panel-title">
+          <button data-toggle="collapse" data-parent="#accordion{{ plot.idx }}" class="btn btn-info btn-block" href="#collapse{{plot.idx}}">
+            Plot Info</button>
+        </h4>
+      </div>
+      <div id="collapse{{plot.idx}}" class="panel-collapse collapse">
+        <div class="panel-body">
+          <div class="text-left">{{ plot.docs|safe }}</div>
+          <div class="text-left">{{ plot.ret_html|safe }}</div>
+          <hr>
+          <p class="text-left"><strong>Plot Arguments</strong></p>
+          <table class="table table-hover">
+            <tbody>
+            {% for key, val in plot.argdict.items() %}
+              <tr>
+                <td>{{ key }}</td> <td>{{ val }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+      </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
