@@ -6,9 +6,9 @@
 
 import re
 from io import BytesIO
-from base64 import b64encode
 from markdown import Markdown
-import latexipy as lp
+from namedlist import namedlist
+import matplotlib.pyplot as plt
 
 
 __all__ = ['decl_fig',
@@ -18,21 +18,6 @@ __all__ = ['decl_fig',
 
 MD = Markdown(extensions=['mdx_math', 'tables'],
               extension_configs={'mdx_math': {'enable_dollar_delimiter': True}})
-
-lp.latexify(params={'pgf.texsystem': 'pdflatex',
-                    'text.usetex': True,
-                    'font.family': 'serif',
-                    'pgf.preamble': [],
-                    'font.size': 15,
-                    'axes.labelsize': 15,
-                    'axes.titlesize': 13,
-                    'legend.fontsize': 13,
-                    'xtick.labelsize': 11,
-                    'ytick.labelsize': 11,
-                    'figure.dpi': 150,
-                    'savefig.transparent': False,
-                    },
-            new_backend='TkAgg')
 
 
 def decl_fig(fn):
@@ -55,7 +40,6 @@ def decl_fig(fn):
 
     @wraps(fn)
     def f(*args, **kwargs):
-        global _decl_counter
         txt = fn(*args, **kwargs)
         argdict = _fn_call_to_dict(fn, *args, **kwargs)
         docs = _process_docs(fn)
@@ -69,8 +53,6 @@ def decl_fig(fn):
 
 
 def render(figures, scale=1.0):
-    from namedlist import namedlist
-
     Figure = namedlist('Figure', 'name data argdict docs html idx')
 
     def exec_fig(fig):
@@ -89,25 +71,24 @@ def render(figures, scale=1.0):
 
     for idx, (name, figure) in enumerate(figures.items()):
         print(f'Building plot #{idx}: {name}')
+
         out = BytesIO()
-        with lp.mem_figure(out,
-                           ext='png',
-                           size=(scale * 10, scale * 10)):
-            argdict, docs, html = exec_fig(figure)
+        plt.gcf().set_size_inches(scale * 10, scale * 10)
+        argdict, docs, html = exec_fig(figure)
+        plt.savefig(out, ext='png')
+        plt.close()
         out.seek(0)
         figures[name] = Figure(name, out, argdict, docs, html, idx)
 
 
-def generate_report(figures, title, outputdir='report',
-                    source=None, ana_source=None, config=None, body=None):
+def generate_report(figures, title, output_dir='report', output_file='report.html',
+                    source=None, ana_source=None, config=None, body=None,
+                    delete_old=True):
     from os.path import join, dirname, abspath
     from os import mkdir
     from shutil import rmtree, copytree
-    from jinja2 import Environment, PackageLoader, select_autoescape, Template
+    from jinja2 import Environment, PackageLoader, select_autoescape
     from urllib.parse import quote
-
-    if body is None:
-        raise ValueError("You must supply the body of the report!")
 
     env = Environment(
         loader=PackageLoader('matplotboard', 'templates'),
@@ -122,21 +103,28 @@ def generate_report(figures, title, outputdir='report',
         with open(source, 'r') as f:
             source = f.read()
 
-    rmtree(outputdir)
-    mkdir(outputdir)
-    pkgdir = dirname(abspath(__file__))
-    copytree(join(pkgdir, 'static', 'js'), join(outputdir, 'js'))
-    copytree(join(pkgdir, 'static', 'css'), join(outputdir, 'css'))
-    figure_dir = join(outputdir, 'figures')
-    mkdir(figure_dir)
+    pkg_dir = dirname(abspath(__file__))
+    figure_dir = join(output_dir, 'figures')
+    if delete_old:
+        rmtree(output_dir, ignore_errors=True)
+    try:
+        mkdir(output_dir)
+        copytree(join(pkg_dir, 'static', 'js'), join(output_dir, 'js'))
+        copytree(join(pkg_dir, 'static', 'css'), join(output_dir, 'css'))
+        mkdir(figure_dir)
+    except FileExistsError:
+        pass
 
     for name, figure in figures.items():
         fname = join(figure_dir, f'{figure.name}.png')
         with open(fname, 'wb') as f:
             f.write(figure.data.read())
 
-    body = re.sub(r'fig::(\w+)', r'{{ fig(figures["\1"]) }}', body)
-    body = MD.convert(body)
+    if body is not None:
+        body = re.sub(r'fig::(\w+)', r'{{ fig(figures["\1"]) }}', body)
+        body = MD.convert(body)
+    else:
+        body = '\n'.join(f'{{{{ fig(figures["{fig_name}"], own_row=False, hide_info=True) }}}}' for fig_name in figures)
 
     report_template = env.from_string(f'''
 {{% extends("report.j2")%}}
@@ -145,7 +133,7 @@ def generate_report(figures, title, outputdir='report',
 {body}
 {{% endblock %}}''')
 
-    with open(join(outputdir, 'report.html'), 'w') as f:
+    with open(join(output_dir, output_file), 'w') as f:
         f.write(report_template.render(
             title=title,
             figures=figures,
@@ -172,4 +160,3 @@ def generate_report(figures, title, outputdir='report',
 #         table.append('</tr>\n')
 #     table.append('</tbody></table>')
 #     return ''.join(table)
-
