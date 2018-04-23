@@ -124,7 +124,7 @@ def generate_report(figures, title, output_dir='report', output_file='report.htm
         body = re.sub(r'fig::(\w+)', r'{{ fig(figures["\1"]) }}', body)
         body = MD.convert(body)
     else:
-        body = '\n'.join(f'{{{{ fig(figures["{fig_name}"], own_row=False, hide_info=True) }}}}' for fig_name in figures)
+        body = '\n'.join(f'{{{{ fig(figures["{fig_name}"], own_row=False) }}}}' for fig_name in figures)
 
     report_template = env.from_string(f'''
 {{% extends("report.j2")%}}
@@ -141,22 +141,3 @@ def generate_report(figures, title, output_dir='report', output_file='report.htm
             ana_source=ana_source,
             config=config,
             ))
-
-
-# def hists_to_table(hists, row_labels=(), column_labels=(), format="{:.2f}"):
-#     table = ['<table class="table table-condensed">']
-#     if column_labels:
-#         table.append('<thead><tr>')
-#         if row_labels:
-#             table.append('<th></th>')
-#         table.extend(f'<th>{label}</th>' for label in column_labels)
-#         table.append('</tr></thead>')
-#     table.append('<tbody>\n')
-#     for row_label, (vals, *_) in zip_longest(row_labels, hists):
-#         table.append('<tr>')
-#         if row_label:
-#             table.append(f'<td><strong>{row_label}</strong></td>')
-#         table.extend(('<td>'+format.format(val)+'</td>') for val in vals)
-#         table.append('</tr>\n')
-#     table.append('</tbody></table>')
-#     return ''.join(table)

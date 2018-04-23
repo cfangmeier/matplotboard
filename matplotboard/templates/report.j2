@@ -17,9 +17,10 @@
 
 <script type="text/x-mathjax-config">
 MathJax.Hub.Config({
-  config: ["MMLorHTML.js"],
-  jax: ["input/TeX", "output/HTML-CSS", "output/NativeMML"],
-  extensions: ["MathMenu.js", "MathZoom.js"]
+  tex2jax: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    processEscapes: true
+  }
 });
 </script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_HTML-full"> </script>
@@ -107,15 +108,40 @@ MathJax.Hub.Config({
 </div>
 </body>
 
-<script>
-$('.thumbnail').click(function(){
-    $('.modal-body').empty();
-    var title = $(this).parent('a').attr("title");
-    $('.modal-title').html(title);
-    $($(this).parents('div').html()).appendTo('.modal-body');
-    $('#myModal').modal({show:true});
-});
-SyntaxHighlighter.all()
-</script>
+<script type="text/javascript">
+  function getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)");
+    var results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+  }
 
+  function baseURL() {
+    return location.protocol + '//' + location.host + location.pathname;
+  }
+
+  $(function(){
+    SyntaxHighlighter.all();
+
+    $('.thumbnail').click(function(){
+      $('.modal-body').empty();
+      var title = $(this).parent('a').attr("title");
+      $('.modal-title').html(title);
+      $($(this).parents('div').html()).appendTo('.modal-body');
+      $('#myModal .caption').prop('hidden', false);
+      $('#myModal').modal({show:true});
+      window.history.pushState("", "", baseURL() + "?focus="+this.id);
+    });
+
+    $("#myModal").on('hide.bs.modal', function(){
+      window.history.pushState("", "", baseURL());
+    });
+
+    var focus = getParameterByName("focus");
+    if (focus) { $("#"+focus).click(); }
+  });
+</script>
 </html>
