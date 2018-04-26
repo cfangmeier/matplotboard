@@ -49,9 +49,20 @@ MathJax.Hub.Config({
 </head>
 <body>
 <div class="container-fluid">
-    <div class="row">
-        <a href="./" class="button"> Go Up <span class="glyphicon glyphicon-circle-arrow-left"></span> </a>
+  <nav class="navbar navbar-default">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a href="./" class="navbar-brand"><span class="glyphicon glyphicon-circle-arrow-left"></span> </a>
+        <div class="navbar-brand" href="#">{{ title }}</div>
+      </div>
+{#      <form class="navbar-form navbar-right">#}
+        <div class="navbar-form navbar-right form-group">
+          <input id="filter-input" type="text" class="form-control" placeholder="Enter Search">
+        </div>
+{#      </form>#}
     </div>
+  </nav>
+
     <div class="row main-content">
     {% block body %}
         <h3>No body supplied</h3>
@@ -123,6 +134,17 @@ MathJax.Hub.Config({
     return location.protocol + '//' + location.host + location.pathname;
   }
 
+  function filterPlots(filter) {
+      if (filter.size === 0) return;
+      var regex = new RegExp(filter);
+      $('.main-content .figure-container').filter(function() {
+          return !regex.test(this.id);
+      }).hide();
+      $('.main-content .figure-container').filter(function() {
+          return regex.test(this.id);
+      }).show();
+  }
+
   $(function(){
     SyntaxHighlighter.all();
 
@@ -133,15 +155,27 @@ MathJax.Hub.Config({
       $($(this).parents('div').html()).appendTo('.modal-body');
       $('#myModal .caption').prop('hidden', false);
       $('#myModal').modal({show:true});
-      window.history.pushState("", "", baseURL() + "?focus="+this.id);
+      window.history.pushState("", "", baseURL() + "?focus="+encodeURIComponent(this.id.substring(1)));
     });
 
-    $("#myModal").on('hide.bs.modal', function(){
+    $("#myModal").on('hide.bs.modal', function() {
       window.history.pushState("", "", baseURL());
     });
 
+    $("#filter-input").keyup(function(e) {
+      if (e.which === 13) {
+        window.history.pushState("", "", baseURL() + "?filter="+encodeURIComponent(this.value));
+      }
+      filterPlots(this.value);
+    });
+
     var focus = getParameterByName("focus");
-    if (focus) { $("#"+focus).click(); }
+    if (focus) {$("#_"+focus).click();}
+    var filter = getParameterByName("filter");
+    if (filter) {
+      $("#filter-input").val(filter);
+      filterPlots(filter);
+    }
   });
 </script>
 </html>

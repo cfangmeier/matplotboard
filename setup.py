@@ -5,7 +5,7 @@ with open('requirements.txt') as req:
 
 setup(
     name='matplotboard',
-    version='0.2.0',
+    version='0.3.0',
     install_requires=install_requires,
     dependency_links=[
         "git+ssh://git@github.com/cfangmeier/latexipy.git#egg=latexipy"
