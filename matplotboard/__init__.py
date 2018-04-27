@@ -13,11 +13,17 @@ import matplotlib.pyplot as plt
 
 __all__ = ['decl_fig',
            'render',
-           'generate_report']
+           'generate_report',
+           'configure']
 
 
 MD = Markdown(extensions=['mdx_math', 'tables'],
               extension_configs={'mdx_math': {'enable_dollar_delimiter': True}})
+CONFIG = {'output_dir': 'dashboard'}
+
+
+def configure(**config):
+    CONFIG.update(config)
 
 
 def decl_fig(fn):
@@ -36,7 +42,7 @@ def decl_fig(fn):
         if raw:
             return MD.convert(raw)
         else:
-            return None
+            return ''
 
     @wraps(fn)
     def f(*args, **kwargs):
@@ -52,8 +58,12 @@ def decl_fig(fn):
     return f
 
 
-def render(figures, scale=1.0):
-    Figure = namedlist('Figure', 'name data argdict docs html idx')
+def render(figures, titles=None, scale=1.0, refresh=True):
+    from shutil import rmtree, copytree
+    from os import makedirs
+    from os.path import join, dirname, abspath
+    from json import dumps, loads
+    Figure = namedlist('Figure', 'name fig_fname title argdict docs html idx')
 
     def exec_fig(fig):
         if not isinstance(fig, tuple):
@@ -69,26 +79,53 @@ def render(figures, scale=1.0):
                              f'or (func, tuple), or (func, tuple, dict). Got {fig}')
         return fn(*args, **kwargs)
 
-    for idx, (name, figure) in enumerate(figures.items()):
-        print(f'Building plot #{idx}: {name}')
+    pkg_dir = dirname(abspath(__file__))
+    output_dir = CONFIG['output_dir']
+    figure_dir = join(output_dir, 'figures')
 
-        out = BytesIO()
-        plt.gcf().set_size_inches(scale * 10, scale * 10)
-        argdict, docs, html = exec_fig(figure)
-        plt.savefig(out, ext='png')
-        plt.close()
-        out.seek(0)
-        figures[name] = Figure(name, out, argdict, docs, html, idx)
+    if refresh:
+        rmtree(output_dir, ignore_errors=True)
+        makedirs(output_dir, exist_ok=True)
+        copytree(join(pkg_dir, 'static', 'js'), join(output_dir, 'js'))
+        copytree(join(pkg_dir, 'static', 'css'), join(output_dir, 'css'))
+        makedirs(figure_dir, exist_ok=True)
+
+        for idx, (name, figure) in enumerate(figures.items()):
+            print(f'Building plot #{idx}: {name}')
+
+            plt.gcf().set_size_inches(scale * 10, scale * 10)
+            argdict, docs, retval = exec_fig(figure)
+            fig_fname = join(figure_dir, f'{name}.png')
+            plt.savefig(fig_fname)
+            plt.close()
+            with open(join(figure_dir, f'{name}.docs.html'), 'w') as f:
+                f.write(docs)
+            with open(join(figure_dir, f'{name}.retval.html'), 'w') as f:
+                f.write(retval)
+            with open(join(figure_dir, f'{name}.args.json'), 'w') as f:
+                plain_args = {}
+                for key, val in argdict.items():
+                    plain_args[str(key)] = str(val)
+                f.write(dumps(plain_args))
+
+    for idx, (name, _) in enumerate(figures.items()):
+        fig_fname = join(figure_dir, f'{name}.png')
+        with open(join(figure_dir, f'{name}.docs.html'), 'r') as f:
+            docs = f.read()
+        with open(join(figure_dir, f'{name}.retval.html'), 'r') as f:
+            retval = f.read()
+        with open(join(figure_dir, f'{name}.args.json'), 'r') as f:
+            argdict = loads(f.read())
+        title = titles[name] if titles is not None else name
+        figures[name] = Figure(name, fig_fname, title, argdict, docs, retval, idx)
 
 
-def generate_report(figures, title, output_dir='report', output_file='report.html',
-                    source=None, ana_source=None, config=None, body=None,
-                    delete_old=True):
-    from os.path import join, dirname, abspath
-    from os import mkdir
-    from shutil import rmtree, copytree
+def generate_report(figures, title, output='report.html',
+                    source=None, ana_source=None, config=None, body=None):
+    from os.path import join
     from jinja2 import Environment, PackageLoader, select_autoescape
     from urllib.parse import quote
+    output_dir = CONFIG['output_dir']
 
     env = Environment(
         loader=PackageLoader('matplotboard', 'templates'),
@@ -103,28 +140,11 @@ def generate_report(figures, title, output_dir='report', output_file='report.htm
         with open(source, 'r') as f:
             source = f.read()
 
-    pkg_dir = dirname(abspath(__file__))
-    figure_dir = join(output_dir, 'figures')
-    if delete_old:
-        rmtree(output_dir, ignore_errors=True)
-    try:
-        mkdir(output_dir)
-        copytree(join(pkg_dir, 'static', 'js'), join(output_dir, 'js'))
-        copytree(join(pkg_dir, 'static', 'css'), join(output_dir, 'css'))
-        mkdir(figure_dir)
-    except FileExistsError:
-        pass
-
-    for name, figure in figures.items():
-        fname = join(figure_dir, f'{figure.name}.png')
-        with open(fname, 'wb') as f:
-            f.write(figure.data.read())
-
     if body is not None:
         body = re.sub(r'fig::(\w+)', r'{{ fig(figures["\1"]) }}', body)
         body = MD.convert(body)
     else:
-        body = '\n'.join(f'{{{{ fig(figures["{fig_name}"], own_row=False) }}}}' for fig_name in figures)
+        body = '\n'.join(f'{{{{ fig(figures["{fig_name}"]) }}}}' for fig_name in figures)
 
     report_template = env.from_string(f'''
 {{% extends("report.j2")%}}
@@ -133,7 +153,7 @@ def generate_report(figures, title, output_dir='report', output_file='report.htm
 {body}
 {{% endblock %}}''')
 
-    with open(join(output_dir, output_file), 'w') as f:
+    with open(join(output_dir, output), 'w') as f:
         f.write(report_template.render(
             title=title,
             figures=figures,

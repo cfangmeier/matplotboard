@@ -30,78 +30,91 @@ MathJax.Hub.Config({
     .thumbnail {margin-bottom:6px;}
     .modal-title {text-align:center;}
     .figure-container-own-row {
-        max-width:35%;
-        padding-bottom: 0px;
+      max-width:35%;
+      padding-bottom: 0px;
     }
     .figure-container {
-        {#max-width:35%;#}
-        padding-bottom: 0px;
+      {#max-width:35%;#}
+      padding-bottom: 0px;
     }
     .main-content {
-        padding-left: 30px;
-        padding-right: 30px;
+      padding-left: 30px;
+      padding-right: 30px;
     }
     .panel-group {
-        margin-bottom: 0px;
+      margin-bottom: 0px;
     }
+    td,th {
+      text-align: right;
+    }
+    .table {
+      width: auto;
+      margin: auto;
+    }
+    body {padding-bottom: 55px;}
 </style>
 
 </head>
 <body>
 <div class="container-fluid">
-  <nav class="navbar navbar-default">
+  <nav class="navbar navbar-inverse">
     <div class="container-fluid">
       <div class="navbar-header">
         <a href="./" class="navbar-brand"><span class="glyphicon glyphicon-circle-arrow-left"></span> </a>
         <div class="navbar-brand" href="#">{{ title }}</div>
       </div>
-{#      <form class="navbar-form navbar-right">#}
         <div class="navbar-form navbar-right form-group">
-          <input id="filter-input" type="text" class="form-control" placeholder="Enter Search">
+          <input id="filter-input" type="text" class="form-control" placeholder="Enter Filter RegEx">
         </div>
-{#      </form>#}
+          <ul class="nav navbar-nav navbar-right nav-pills">
+          {% if ana_source %}
+            <li class="active">
+              <a href="{{ ana_source }}">Analysis Source Code</a>
+            </li>
+          {% endif %}
+          {% if source %}
+            <li>
+              <a data-toggle="collapse" data-parent="#accordion"  href="#collapseSrc"> Report Source Code</a>
+            </li>
+          {% endif %}
+          {% if config %}
+            <li>
+              <a data-toggle="collapse" data-parent="#accordion" href="#collapseConfig">Analysis Configuration</a>
+            </li>
+          {% endif %}
+          </ul>
     </div>
   </nav>
 
-    <div class="row main-content">
-    {% block body %}
-        <h3>No body supplied</h3>
-    {% endblock %}
+  {% if source %}
+      <div id="collapseSrc" class="panel-collapse collapse">
+          <div class="panel-body">
+              <script type="syntaxhighlighter" class="brush: python"><![CDATA[ {{ source|safe}} ]]></script>
+          </div>
+      </div>
+  {% endif %}
+  {% if config %}
+    <div id="collapseConfig" class="panel-collapse collapse">
+      <div class="panel-body">
+        <script type="syntaxhighlighter" class="brush: plain"><![CDATA[ {{ config|safe}} ]]></script>
+      </div>
     </div>
+  {% endif %}
+
+
+  <div class="row main-content">
+  {% block body %}
+    <h3>No body supplied</h3>
+  {% endblock %}
+  </div>
 
   <div class="row">
     <div class="col-12-lg">
       <div class="panel-group" id="accordion">
         <div class="panel-heading">
           <h4 class="panel-title" style="text-align:center">
-            {% if config %}
-            <button data-toggle="collapse" data-parent="#accordion" class="btn btn-default" href="#collapseConfig">Analysis Configuration</button>
-            {% endif %}
-            {% if source %}
-            <button data-toggle="collapse" data-parent="#accordion" class="btn btn-default" href="#collapseSrc">Report Source Code</button>
-            {% endif %}
-            {% if ana_source %}
-            <a class="btn btn-default" href="{{ ana_source }}" target="_blank">Analysis Source Code</a>
-            {% endif %}
           </h4>
         </div>
-
-      {% if config %}
-          <div id="collapseConfig" class="panel-collapse collapse">
-              <div class="panel-body">
-                  <script type="syntaxhighlighter" class="brush: plain"><![CDATA[ {{ config|safe}} ]]></script>
-              </div>
-          </div>
-      {% endif %}
-
-      {% if source %}
-        <div id="collapseSrc" class="panel-collapse collapse">
-          <div class="panel-body">
-<script type="syntaxhighlighter" class="brush: python"><![CDATA[ {{ source|safe}} ]]></script>
-          </div>
-        </div>
-      {% endif %}
-
       </div>
     </div>
   </div>
@@ -117,6 +130,14 @@ MathJax.Hub.Config({
    </div>
   </div>
 </div>
+
+  <div class="navbar navbar-inverse navbar-fixed-bottom">
+{#    <div class="container">#}
+      <p class="navbar-text pull-left"> Built with <a href="https://github.com/cfangmeier/matplotboard">Matplotboard</a>
+      </p>
+{#    </div>#}
+  </div>
+
 </body>
 
 <script type="text/javascript">
