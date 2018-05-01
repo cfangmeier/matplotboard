@@ -4,8 +4,6 @@
     matplotboard.histogram
 """
 
-import re
-from io import BytesIO
 from markdown import Markdown
 from namedlist import namedlist
 import matplotlib.pyplot as plt
@@ -123,6 +121,7 @@ def render(figures, titles=None, scale=1.0, refresh=True):
 def generate_report(figures, title, output='report.html',
                     source=None, ana_source=None, config=None, body=None):
     from os.path import join
+    from json import dumps
     from jinja2 import Environment, PackageLoader, select_autoescape
     from urllib.parse import quote
     output_dir = CONFIG['output_dir']
@@ -140,17 +139,19 @@ def generate_report(figures, title, output='report.html',
         with open(source, 'r') as f:
             source = f.read()
 
-    if body is not None:
-        body = re.sub(r'fig::(\w+)', r'{{ fig(figures["\1"]) }}', body)
-        body = MD.convert(body)
-    else:
-        body = '\n'.join(f'{{{{ fig(figures["{fig_name}"]) }}}}' for fig_name in figures)
+    # if body is not None:
+    #     body = re.sub(r'fig::(\w+)', r'{{ fig(figures["\1"]) }}', body)
+    #     body = MD.convert(body)
+    # else:
+    #     body = '\n'.join(f'{{{{ fig(figures["{fig_name}"]) }}}}' for fig_name in figures)
+
+    body = dumps([fig._asdict() for fig in figures.values()])
 
     report_template = env.from_string(f'''
 {{% extends("report.j2")%}}
 {{% from 'macros.j2' import fig %}}
-{{% block body %}}
-{body}
+{{% block data %}}
+var figures = {body};
 {{% endblock %}}''')
 
     with open(join(output_dir, output), 'w') as f:

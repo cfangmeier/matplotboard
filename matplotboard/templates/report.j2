@@ -19,7 +19,7 @@
 MathJax.Hub.Config({
   tex2jax: {
     inlineMath: [['$','$'], ['\\(','\\)']],
-    processEscapes: true
+    processEscapes: true,
   }
 });
 </script>
@@ -104,7 +104,6 @@ MathJax.Hub.Config({
 
   <div class="row main-content">
   {% block body %}
-    <h3>No body supplied</h3>
   {% endblock %}
   </div>
 
@@ -131,72 +130,152 @@ MathJax.Hub.Config({
   </div>
 </div>
 
-  <div class="navbar navbar-inverse navbar-fixed-bottom">
-{#    <div class="container">#}
-      <p class="navbar-text pull-left"> Built with <a href="https://github.com/cfangmeier/matplotboard">Matplotboard</a>
-      </p>
-{#    </div>#}
-  </div>
+<ul class="pagination"> </ul>
+
+<div class="navbar navbar-inverse navbar-fixed-bottom">
+  <p class="navbar-text pull-left"> Built with <a href="https://github.com/cfangmeier/matplotboard">Matplotboard</a> </p>
+</div>
 
 </body>
 
 <script type="text/javascript">
+
+{% block data %}
+  var figures = [];
+{% endblock %}
+
+  let filter = "";
+  let focus = "";
+  let pages = [];
+  let pageIdx = 0;
+  const figs_per_page = 48;
+
   function getParameterByName(name, url) {
     if (!url) url = window.location.href;
     name = name.replace(/[\[\]]/g, "\\$&");
-    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)");
-    var results = regex.exec(url);
+    let regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)");
+    let results = regex.exec(url);
     if (!results) return null;
     if (!results[2]) return '';
     return decodeURIComponent(results[2].replace(/\+/g, " "));
   }
 
-  function baseURL() {
-    return location.protocol + '//' + location.host + location.pathname;
+  function constructFigure(figure) {
+      return $(`\
+<div id="${figure['name']}" class="col-xs-4 col-md-2 well center-block figure-container" style="padding:5px;">
+  <a title="${figure['title']}">
+    <img id="_${figure['name']}" src="./figures/${figure['name']}.png" class="thumbnail img-responsive center-block">
+  </a>
+  <div class="caption">
+    <p class="text-center"> ${figure['name']} </p>
+  </div>
+  <div class="caption" hidden style="overflow-x: auto">
+    <p class="text-left">${figure['html']}</p>
+    <div class="text-left">${figure['docs']}</div>
+  </div>
+</div>`);
   }
 
-  function filterPlots(filter) {
-      if (filter.size === 0) return;
-      var regex = new RegExp(filter);
-      $('.main-content .figure-container').filter(function() {
-          return !regex.test(this.id);
-      }).hide();
-      $('.main-content .figure-container').filter(function() {
-          return regex.test(this.id);
-      }).show();
+  function urlWithArgs(obj) {
+    let url = location.protocol + '//' + location.host + location.pathname;
+    let args = [];
+    for (let key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            let val = obj[key];
+            if (val != null && val != '') {
+                args.push(encodeURIComponent(key) + "=" + encodeURIComponent(val))
+            }
+        }
+    }
+    if (args.length > 0) {
+        url += "?" + args.join("&");
+    }
+    return url;
+  }
+
+  function updateURL() {
+      let url = urlWithArgs({'filter': filter, 'focus': focus, 'page': pageIdx});
+      window.history.replaceState("", "", url);
+  }
+
+  function loadPage() {
+      let page = pages[pageIdx];
+      $('.main-content').empty().append(page);
+
+      $('.thumbnail').click(function() {
+          $('.modal-body').empty();
+          let title = $(this).parent('a').attr("title");
+          $('.modal-title').html(title);
+          $($(this).parents('div').html()).appendTo('.modal-body');
+          $('#myModal .caption').prop('hidden', false);
+          $('#myModal').modal({show:true});
+          focus = this.id.substring(1);
+          updateURL();
+          MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
+      });
+
+  }
+
+  function filterPlots() {
+      let regex = new RegExp(filter);
+      pages = [];
+      let page = [];
+      for (let figIdx=0; figIdx<figures.length; figIdx++) {
+          if (!filter || regex.test(figures[figIdx]['name'])) {
+              page.push(constructFigure(figures[figIdx]));
+              if (page.length >= figs_per_page) {
+                  pages.push(page);
+                  page = [];
+              }
+          }
+      }
+      if (page.length > 0) pages.push(page);
+
+      let page_buttons = [];
+      for (let idx=0; idx<pages.length; idx++) {
+          if (idx === pageIdx)
+              page_buttons.push($(`<li class="active"><a>${idx+1}</a></li>`));
+          else
+              page_buttons.push($(`<li><a>${idx+1}</a></li>`));
+      }
+      $('.pagination').empty().append(page_buttons);
+
+      $('.pagination li a').click(function() {
+          pageIdx = parseInt(this.innerText)-1;
+          loadPage();
+          $('.pagination li').removeClass("active");
+          $(this).parent().addClass("active");
+          updateURL();
+      });
+
+      loadPage();
   }
 
   $(function(){
     SyntaxHighlighter.all();
 
-    $('.thumbnail').click(function(){
-      $('.modal-body').empty();
-      var title = $(this).parent('a').attr("title");
-      $('.modal-title').html(title);
-      $($(this).parents('div').html()).appendTo('.modal-body');
-      $('#myModal .caption').prop('hidden', false);
-      $('#myModal').modal({show:true});
-      window.history.pushState("", "", baseURL() + "?focus="+encodeURIComponent(this.id.substring(1)));
-    });
-
     $("#myModal").on('hide.bs.modal', function() {
-      window.history.pushState("", "", baseURL());
+      focus = '';
+      updateURL();
     });
 
     $("#filter-input").keyup(function(e) {
       if (e.which === 13) {
-        window.history.pushState("", "", baseURL() + "?filter="+encodeURIComponent(this.value));
+        filter = this.value;
+        pageIdx = 0;
+        filterPlots();
+        updateURL();
       }
-      filterPlots(this.value);
     });
 
-    var focus = getParameterByName("focus");
+    pageIdx = parseInt(getParameterByName("page"));
+    if (pageIdx == null || isNaN(pageIdx)) pageIdx = 0;
+    filter = getParameterByName("filter");
+    if (filter === null) filter = '';
+    $("#filter-input").val(filter);
+    filterPlots(filter);
+    focus = getParameterByName("focus");
     if (focus) {$("#_"+focus).click();}
-    var filter = getParameterByName("filter");
-    if (filter) {
-      $("#filter-input").val(filter);
-      filterPlots(filter);
-    }
   });
 </script>
 </html>
