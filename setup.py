@@ -8,7 +8,7 @@ with open('README.md') as f:
 
 setup(
     name='matplotboard',
-    version='0.3.1',
+    version='0.4.0',
     description='Generate simple HTML dashboards using matplotlib',
     long_description=desc,
     long_description_content_type='text/markdown',
