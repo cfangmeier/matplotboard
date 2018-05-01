@@ -26,32 +26,50 @@ MathJax.Hub.Config({
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_HTML-full"> </script>
 
 <style>
-    .modal-dialog {width:90%;}
-    .thumbnail {margin-bottom:6px;}
-    .modal-title {text-align:center;}
-    .figure-container-own-row {
-      max-width:35%;
-      padding-bottom: 0px;
-    }
-    .figure-container {
-      {#max-width:35%;#}
-      padding-bottom: 0px;
-    }
-    .main-content {
-      padding-left: 30px;
-      padding-right: 30px;
-    }
-    .panel-group {
-      margin-bottom: 0px;
-    }
-    td,th {
-      text-align: right;
-    }
-    .table {
-      width: auto;
-      margin: auto;
-    }
-    body {padding-bottom: 55px;}
+  .modal-dialog {width:90%;}
+  .thumbnail {
+    margin-bottom:6px;
+    cursor: pointer;
+  }
+  li a {
+      cursor: pointer;
+  }
+  .modal-title {text-align:center;}
+  .figure-container-own-row {
+    max-width:35%;
+    padding-bottom: 0px;
+  }
+  .figure-container {
+    {#max-width:35%;#}
+    padding-bottom: 0px;
+  }
+  .main-content {
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+  .panel-group {
+    margin-bottom: 0px;
+  }
+  td,th {
+    text-align: right;
+  }
+  .table {
+    width: auto;
+    margin: auto;
+  }
+  body {padding-bottom: 55px;}
+
+  #search-clear {
+    position: absolute;
+    right: 20px;
+    top: 0;
+    bottom: 0;
+    height: 14px;
+    margin: auto;
+    font-size: 14px;
+    cursor: pointer;
+    color: #ccc;
+  }
 </style>
 
 </head>
@@ -65,6 +83,7 @@ MathJax.Hub.Config({
       </div>
         <div class="navbar-form navbar-right form-group">
           <input id="filter-input" type="text" class="form-control" placeholder="Enter Filter RegEx">
+          <span id="search-clear" class="glyphicon glyphicon-remove-circle"></span>
         </div>
           <ul class="nav navbar-nav navbar-right nav-pills">
           {% if ana_source %}
@@ -130,7 +149,9 @@ MathJax.Hub.Config({
   </div>
 </div>
 
-<ul class="pagination"> </ul>
+<div class="text-center">
+  <ul class="pagination"> </ul>
+</div>
 
 <div class="navbar navbar-inverse navbar-fixed-bottom">
   <p class="navbar-text pull-left"> Built with <a href="https://github.com/cfangmeier/matplotboard">Matplotboard</a> </p>
@@ -199,19 +220,26 @@ MathJax.Hub.Config({
   }
 
   function loadPage() {
-      let page = pages[pageIdx];
+      let page = [];
+      for (let figureIdx=0; figureIdx<pages[pageIdx].length; figureIdx++) {
+          page.push(constructFigure(pages[pageIdx][figureIdx]));
+      }
       $('.main-content').empty().append(page);
+      MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
 
       $('.thumbnail').click(function() {
           $('.modal-body').empty();
           let title = $(this).parent('a').attr("title");
-          $('.modal-title').html(title);
+          let title_elem = $('.modal-title');
+          title_elem.html(title);
+          {#var math = document.getElementById("MathExample");#}
+          MathJax.Hub.Queue(["Typeset",MathJax.Hub,title_elem[0]]);
+
           $($(this).parents('div').html()).appendTo('.modal-body');
           $('#myModal .caption').prop('hidden', false);
           $('#myModal').modal({show:true});
           focus = this.id.substring(1);
           updateURL();
-          MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
       });
 
   }
@@ -222,7 +250,7 @@ MathJax.Hub.Config({
       let page = [];
       for (let figIdx=0; figIdx<figures.length; figIdx++) {
           if (!filter || regex.test(figures[figIdx]['name'])) {
-              page.push(constructFigure(figures[figIdx]));
+              page.push(figures[figIdx]);
               if (page.length >= figs_per_page) {
                   pages.push(page);
                   page = [];
@@ -259,7 +287,9 @@ MathJax.Hub.Config({
       updateURL();
     });
 
-    $("#filter-input").keyup(function(e) {
+    let filter_input = $("#filter-input");
+
+    filter_input.keyup(function(e) {
       if (e.which === 13) {
         filter = this.value;
         pageIdx = 0;
@@ -268,11 +298,19 @@ MathJax.Hub.Config({
       }
     });
 
+    $("#search-clear").click(function(){
+      filter_input.val('');
+      filter = '';
+      pageIdx = 0;
+      filterPlots();
+      updateURL();
+    });
+
     pageIdx = parseInt(getParameterByName("page"));
     if (pageIdx == null || isNaN(pageIdx)) pageIdx = 0;
     filter = getParameterByName("filter");
     if (filter === null) filter = '';
-    $("#filter-input").val(filter);
+    filter_input.val(filter);
     filterPlots(filter);
     focus = getParameterByName("focus");
     if (focus) {$("#_"+focus).click();}

@@ -88,8 +88,9 @@ def render(figures, titles=None, scale=1.0, refresh=True):
         copytree(join(pkg_dir, 'static', 'css'), join(output_dir, 'css'))
         makedirs(figure_dir, exist_ok=True)
 
+        nplots = len(figures)
         for idx, (name, figure) in enumerate(figures.items()):
-            print(f'Building plot #{idx}: {name}')
+            print(f'Building plot #{idx+1}/{nplots}: {name}')
 
             plt.gcf().set_size_inches(scale * 10, scale * 10)
             argdict, docs, retval = exec_fig(figure)
@@ -157,7 +158,6 @@ var figures = {body};
     with open(join(output_dir, output), 'w') as f:
         f.write(report_template.render(
             title=title,
-            figures=figures,
             source=source,
             ana_source=ana_source,
             config=config,
