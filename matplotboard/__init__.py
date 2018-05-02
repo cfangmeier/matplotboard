@@ -17,7 +17,9 @@ __all__ = ['decl_fig',
 
 MD = Markdown(extensions=['mdx_math', 'tables'],
               extension_configs={'mdx_math': {'enable_dollar_delimiter': True}})
-CONFIG = {'output_dir': 'dashboard'}
+CONFIG = {'output_dir': 'dashboard',
+          'scale': 1.0,
+          'multiprocess': False}
 
 
 def configure(**config):
@@ -56,26 +58,51 @@ def decl_fig(fn):
     return f
 
 
-def render(figures, titles=None, scale=1.0, refresh=True):
+def _exec_fig(fig):
+    if not isinstance(fig, tuple):
+        fn, args, kwargs = fig, (), {}
+    elif len(fig) == 1:
+        fn, args, kwargs = fig[0], (), {}
+    elif len(fig) == 2:
+        fn, args, kwargs = fig[0], fig[1], {}
+    elif len(fig) == 3:
+        fn, args, kwargs = fig[0], fig[1], fig[2]
+    else:
+        raise ValueError('Plot tuple must be of format (func), '
+                         f'or (func, tuple), or (func, tuple, dict). Got {fig}')
+    return fn(*args, **kwargs)
+
+
+def _render_one(args):
+    from os.path import join
+    from json import dumps
+    idx, nplots, name, figure, figure_dir = args;
+    print(f'Building plot #{idx+1}/{nplots}: {name}')
+    scale = CONFIG['scale']
+
+    plt.gcf().set_size_inches(scale * 10, scale * 10)
+    argdict, docs, retval = _exec_fig(figure)
+    fig_fname = join(figure_dir, f'{name}.png')
+    plt.savefig(fig_fname)
+    plt.close()
+    with open(join(figure_dir, f'{name}.docs.html'), 'w') as f:
+        f.write(docs)
+    with open(join(figure_dir, f'{name}.retval.html'), 'w') as f:
+        f.write(retval)
+    with open(join(figure_dir, f'{name}.args.json'), 'w') as f:
+        plain_args = {}
+        for key, val in argdict.items():
+            plain_args[str(key)] = str(val)
+        f.write(dumps(plain_args))
+
+
+def render(figures, titles=None, refresh=True, ncores=None):
     from shutil import rmtree, copytree
     from os import makedirs
     from os.path import join, dirname, abspath
-    from json import dumps, loads
+    from json import loads
+    from multiprocessing import Pool, cpu_count
     Figure = namedlist('Figure', 'name fig_fname title argdict docs html idx')
-
-    def exec_fig(fig):
-        if not isinstance(fig, tuple):
-            fn, args, kwargs = fig, (), {}
-        elif len(fig) == 1:
-            fn, args, kwargs = fig[0], (), {}
-        elif len(fig) == 2:
-            fn, args, kwargs = fig[0], fig[1], {}
-        elif len(fig) == 3:
-            fn, args, kwargs = fig[0], fig[1], fig[2]
-        else:
-            raise ValueError('Plot tuple must be of format (func), '
-                             f'or (func, tuple), or (func, tuple, dict). Got {fig}')
-        return fn(*args, **kwargs)
 
     pkg_dir = dirname(abspath(__file__))
     output_dir = CONFIG['output_dir']
@@ -86,26 +113,35 @@ def render(figures, titles=None, scale=1.0, refresh=True):
         makedirs(output_dir, exist_ok=True)
         copytree(join(pkg_dir, 'static', 'js'), join(output_dir, 'js'))
         copytree(join(pkg_dir, 'static', 'css'), join(output_dir, 'css'))
+        copytree(join(pkg_dir, 'static', 'icons'), join(output_dir, 'icons'))
         makedirs(figure_dir, exist_ok=True)
 
         nplots = len(figures)
-        for idx, (name, figure) in enumerate(figures.items()):
-            print(f'Building plot #{idx+1}/{nplots}: {name}')
-
-            plt.gcf().set_size_inches(scale * 10, scale * 10)
-            argdict, docs, retval = exec_fig(figure)
-            fig_fname = join(figure_dir, f'{name}.png')
-            plt.savefig(fig_fname)
-            plt.close()
-            with open(join(figure_dir, f'{name}.docs.html'), 'w') as f:
-                f.write(docs)
-            with open(join(figure_dir, f'{name}.retval.html'), 'w') as f:
-                f.write(retval)
-            with open(join(figure_dir, f'{name}.args.json'), 'w') as f:
-                plain_args = {}
-                for key, val in argdict.items():
-                    plain_args[str(key)] = str(val)
-                f.write(dumps(plain_args))
+        args = ((idx, nplots, name, figure, figure_dir) for idx, (name, figure) in enumerate(figures.items()))
+        if CONFIG['multiprocess']:
+            pool = Pool(ncores if ncores is not None else cpu_count())
+            pool.map(_render_one, args)
+        else:
+            for arg in args:
+                _render_one(arg)
+        # for idx, (name, figure) in enumerate(figures.items()):
+        #
+        #     print(f'Building plot #{idx+1}/{nplots}: {name}')
+        #
+        #     plt.gcf().set_size_inches(scale * 10, scale * 10)
+        #     argdict, docs, retval = _exec_fig(figure)
+        #     fig_fname = join(figure_dir, f'{name}.png')
+        #     plt.savefig(fig_fname)
+        #     plt.close()
+        #     with open(join(figure_dir, f'{name}.docs.html'), 'w') as f:
+        #         f.write(docs)
+        #     with open(join(figure_dir, f'{name}.retval.html'), 'w') as f:
+        #         f.write(retval)
+        #     with open(join(figure_dir, f'{name}.args.json'), 'w') as f:
+        #         plain_args = {}
+        #         for key, val in argdict.items():
+        #             plain_args[str(key)] = str(val)
+        #         f.write(dumps(plain_args))
 
     for idx, (name, _) in enumerate(figures.items()):
         fig_fname = join(figure_dir, f'{name}.png')
@@ -150,7 +186,6 @@ def generate_report(figures, title, output='report.html',
 
     report_template = env.from_string(f'''
 {{% extends("report.j2")%}}
-{{% from 'macros.j2' import fig %}}
 {{% block data %}}
 var figures = {body};
 {{% endblock %}}''')
