@@ -143,16 +143,20 @@ def render(figures, titles=None, refresh=True, ncores=None):
         #             plain_args[str(key)] = str(val)
         #         f.write(dumps(plain_args))
 
-    for idx, (name, _) in enumerate(figures.items()):
-        fig_fname = join(figure_dir, f'{name}.png')
-        with open(join(figure_dir, f'{name}.docs.html'), 'r') as f:
-            docs = f.read()
-        with open(join(figure_dir, f'{name}.retval.html'), 'r') as f:
-            retval = f.read()
-        with open(join(figure_dir, f'{name}.args.json'), 'r') as f:
-            argdict = loads(f.read())
-        title = titles[name] if titles is not None else name
-        figures[name] = Figure(name, fig_fname, title, argdict, docs, retval, idx)
+    try:
+        for idx, (name, _) in enumerate(figures.items()):
+            fig_fname = join(figure_dir, f'{name}.png')
+            with open(join(figure_dir, f'{name}.docs.html'), 'r') as f:
+                docs = f.read()
+            with open(join(figure_dir, f'{name}.retval.html'), 'r') as f:
+                retval = f.read()
+            with open(join(figure_dir, f'{name}.args.json'), 'r') as f:
+                argdict = loads(f.read())
+            title = titles[name] if titles is not None else name
+            figures[name] = Figure(name, fig_fname, title, argdict, docs, retval, idx)
+    except FileNotFoundError as e:
+        print("File not found, you probably need to generate the plots! (ie set refresh=True)")
+        raise e
 
 
 def generate_report(figures, title, output='report.html',

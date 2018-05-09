@@ -22,11 +22,12 @@
   <meta name="msapplication-TileImage" content="./icons/ms-icon-144x144.png">
   <meta name="theme-color" content="#ffffff">
 
-
   <meta name="viewport" content="width=device-width, initial-scale=2">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
 
   <script src="./js/shCore.js"         type="text/javascript"></script>
   <script src="./js/shBrushPython.js" type="text/javascript"></script>
@@ -101,6 +102,9 @@ MathJax.Hub.Config({
         <a href="./" class="navbar-brand"><span class="glyphicon glyphicon-circle-arrow-left"></span> </a>
         <div class="navbar-brand" href="#">{{ title }}</div>
       </div>
+        <div class="navbar-form navbar-left form-group">
+          <input id="zoom-toggle" checked data-toggle="toggle" type="checkbox" data-on="Big" data-off="Normal">
+        </div>
         <div class="navbar-form navbar-right form-group">
           <input id="filter-input" type="text" class="form-control" placeholder="Enter Filter RegEx">
           <span id="search-clear" class="glyphicon glyphicon-remove-circle"></span>
@@ -203,7 +207,7 @@ MathJax.Hub.Config({
 
   function constructFigure(figure) {
       return $(`\
-<div id="${figure['name']}" class="col-xs-4 col-md-2 well center-block figure-container" style="padding:5px;">
+<div id="${figure['name']}" class="well center-block figure-container" style="padding:5px;">
   <a title="${figure['title']}">
     <img id="_${figure['name']}" src="./figures/${figure['name']}.png" class="thumbnail img-responsive center-block">
   </a>
@@ -240,11 +244,15 @@ MathJax.Hub.Config({
   }
 
   function loadPage() {
+      let main_content = $('.main-content');
+      main_content.empty();
+      if (pages.length < pageIdx) return;
       let page = [];
       for (let figureIdx=0; figureIdx<pages[pageIdx].length; figureIdx++) {
           page.push(constructFigure(pages[pageIdx][figureIdx]));
       }
-      $('.main-content').empty().append(page);
+      main_content.append(page);
+      setZoom();
       MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
 
       $('.thumbnail').click(function() {
@@ -299,12 +307,28 @@ MathJax.Hub.Config({
       loadPage();
   }
 
+  function setZoom() {
+      const normalClasses = "col-xs-4 col-md-2";
+      const zoomClasses = "col-xs-12 col-md-4";
+      let figs = $(".figure-container");
+      if ($("#zoom-toggle").prop('checked')) {
+          figs.removeClass(normalClasses).addClass(zoomClasses);
+      } else {
+          figs.removeClass(zoomClasses).addClass(normalClasses);
+      }
+  }
+
   $(function(){
     SyntaxHighlighter.all();
 
     $("#myModal").on('hide.bs.modal', function() {
       focus = '';
       updateURL();
+    });
+
+    $('#zoom-toggle').bootstrapToggle('off');
+    $('#zoom-toggle').change(function() {
+        setZoom();
     });
 
     let filter_input = $("#filter-input");
