@@ -1,8 +1,17 @@
 {% extends("base.j2") %}
-{% macro figure(name, title, caption) %}
-<div id="{{ name }}" class="well center-block figure-container" style="padding:5px;">
+{% macro figure(name, title, caption, external=False) %}
+    {% if external %}
+      {% set id = name.replace(':', '_').replace('/', '_').replace('.', '_') %}
+    {% else %}
+      {% set id = name %}
+    {% endif %}
+<div id="{{ id }}" class="well center-block figure-container" style="padding:5px;">
   <a title="{{ title }}">
-    <img id="_{{ name }}" src="./figures/{{ name }}.png" class="thumbnail img-responsive center-block">
+      {% if external %}
+    <img id="_{{ id }}" src="{{ name }}" class="thumbnail img-responsive center-block">
+      {% else %}
+    <img id="_{{ id }}" src="./figures/{{ name }}.png" class="thumbnail img-responsive center-block">
+      {% endif %}
   </a>
   <div class="caption">
     <p class="text-center"> {{ caption }} </p>
@@ -48,8 +57,6 @@
     $(thumb.parents('div').html()).appendTo('.modal-body');
     $('#myModal .caption').prop('hidden', false);
     $('#myModal').modal({show:true});
-    focus = thumb_id.substring(1);
-    updateURL();
   }
 
   $(function(){

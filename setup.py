@@ -8,7 +8,7 @@ setup(
     author_email='caleb@fangmeier.tech',
     url='https://github.com/cfangmeier/matplotboard',
     name='matplotboard',
-    version='0.5.2',
+    version='0.6.1',
     description='Generate simple HTML dashboards using matplotlib',
     long_description=desc,
     long_description_content_type='text/markdown',

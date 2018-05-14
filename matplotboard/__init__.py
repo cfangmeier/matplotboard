@@ -165,9 +165,10 @@ def generate_report(figures, title, output='report.html',
         if body.endswith(".md"):
             with open(body, "r") as f:
                 body = f.read()
-        rex = re.compile(r'fig::(\w+)(:(.*$))?', flags=re.MULTILINE)
+        ext_rex = re.compile(r'extfig::([^|]+)(\|(.*$))?', flags=re.MULTILINE)
+        body = ext_rex.sub(r'{{ figure("\1", "", "\3", True) }}', body)
+        rex = re.compile(r'fig::(\w+)(\|(.*$))?', flags=re.MULTILINE)
         body = rex.sub(r'{{ figure("\1", "", "\3") }}', body)
-        print(body)
         body = MD.convert(body)
         template = env.from_string(f'''
 {{% extends("report.j2")%}}
