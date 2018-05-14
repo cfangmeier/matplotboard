@@ -1,7 +1,6 @@
 """
     __init__.py
-    The functions in this module are meant for plotting the histogram objects created via
-    matplotboard.histogram
+    The functions in this module used to declare, render, and compile figures generated with matplotlib.
 """
 
 from markdown import Markdown
@@ -15,7 +14,7 @@ __all__ = ['decl_fig',
            'configure']
 
 
-MD = Markdown(extensions=['mdx_math', 'tables'],
+MD = Markdown(extensions=['mdx_math', 'tables', 'markdown.extensions.meta'],
               extension_configs={'mdx_math': {'enable_dollar_delimiter': True}})
 CONFIG = {'output_dir': 'dashboard',
           'scale': 1.0,
@@ -124,25 +123,6 @@ def render(figures, titles=None, refresh=True, ncores=None):
         else:
             for arg in args:
                 _render_one(arg)
-        # for idx, (name, figure) in enumerate(figures.items()):
-        #
-        #     print(f'Building plot #{idx+1}/{nplots}: {name}')
-        #
-        #     plt.gcf().set_size_inches(scale * 10, scale * 10)
-        #     argdict, docs, retval = _exec_fig(figure)
-        #     fig_fname = join(figure_dir, f'{name}.png')
-        #     plt.savefig(fig_fname)
-        #     plt.close()
-        #     with open(join(figure_dir, f'{name}.docs.html'), 'w') as f:
-        #         f.write(docs)
-        #     with open(join(figure_dir, f'{name}.retval.html'), 'w') as f:
-        #         f.write(retval)
-        #     with open(join(figure_dir, f'{name}.args.json'), 'w') as f:
-        #         plain_args = {}
-        #         for key, val in argdict.items():
-        #             plain_args[str(key)] = str(val)
-        #         f.write(dumps(plain_args))
-
     try:
         for idx, (name, _) in enumerate(figures.items()):
             fig_fname = join(figure_dir, f'{name}.png')
@@ -160,7 +140,8 @@ def render(figures, titles=None, refresh=True, ncores=None):
 
 
 def generate_report(figures, title, output='report.html',
-                    source=None, ana_source=None, config=None, body=None):
+                    source=None, ana_source=None, config=None, body:str=None):
+    import re
     from os.path import join
     from json import dumps
     from jinja2 import Environment, PackageLoader, select_autoescape
@@ -180,22 +161,33 @@ def generate_report(figures, title, output='report.html',
         with open(source, 'r') as f:
             source = f.read()
 
-    # if body is not None:
-    #     body = re.sub(r'fig::(\w+)', r'{{ fig(figures["\1"]) }}', body)
-    #     body = MD.convert(body)
-    # else:
-    #     body = '\n'.join(f'{{{{ fig(figures["{fig_name}"]) }}}}' for fig_name in figures)
-
-    body = dumps([fig._asdict() for fig in figures.values()])
-
-    report_template = env.from_string(f'''
+    if body is not None:
+        if body.endswith(".md"):
+            with open(body, "r") as f:
+                body = f.read()
+        rex = re.compile(r'fig::(\w+)(:(.*$))?', flags=re.MULTILINE)
+        body = rex.sub(r'{{ figure("\1", "", "\3") }}', body)
+        print(body)
+        body = MD.convert(body)
+        template = env.from_string(f'''
 {{% extends("report.j2")%}}
+{{% block body %}}
+<p class="provenance"> {', '.join(MD.Meta['authors'])} <br> {MD.Meta['date'][0]}</p>
+{body}
+{{% endblock %}}
+    ''')
+    else:
+        body = dumps([fig._asdict() for fig in figures.values()])
+        template = env.from_string(f'''
+{{% extends("dump.j2")%}}
 {{% block data %}}
 var figures = {body};
-{{% endblock %}}''')
+{{% endblock %}}
+    ''')
 
     with open(join(output_dir, output), 'w') as f:
-        f.write(report_template.render(
+        f.write(template.render(
+            figures=figures,
             title=title,
             source=source,
             ana_source=ana_source,

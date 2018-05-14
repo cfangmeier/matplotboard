@@ -1,363 +1,61 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <title>{{ title }}</title>
-  <meta charset="utf-8">
+{% extends("base.j2") %}
+{% macro figure(name, title, caption) %}
+<div id="{{ name }}" class="well center-block figure-container" style="padding:5px;">
+  <a title="{{ title }}">
+    <img id="_{{ name }}" src="./figures/{{ name }}.png" class="thumbnail img-responsive center-block">
+  </a>
+  <div class="caption">
+    <p class="text-center"> {{ caption }} </p>
+  </div>
+</div>
+{% endmacro %}
 
-  <link rel="apple-touch-icon" sizes="57x57" href="./icons/apple-icon-57x57.png">
-  <link rel="apple-touch-icon" sizes="60x60" href="./icons/apple-icon-60x60.png">
-  <link rel="apple-touch-icon" sizes="72x72" href="./icons/apple-icon-72x72.png">
-  <link rel="apple-touch-icon" sizes="76x76" href="./icons/apple-icon-76x76.png">
-  <link rel="apple-touch-icon" sizes="114x114" href="./icons/apple-icon-114x114.png">
-  <link rel="apple-touch-icon" sizes="120x120" href="./icons/apple-icon-120x120.png">
-  <link rel="apple-touch-icon" sizes="144x144" href="./icons/apple-icon-144x144.png">
-  <link rel="apple-touch-icon" sizes="152x152" href="./icons/apple-icon-152x152.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-icon-180x180.png">
-  <link rel="icon" type="image/png" sizes="192x192"  href="./icons/android-icon-192x192.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="96x96" href="./icons/favicon-96x96.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
-  <link rel="manifest" href="./icons/manifest.json">
-  <meta name="msapplication-TileColor" content="#ffffff">
-  <meta name="msapplication-TileImage" content="./icons/ms-icon-144x144.png">
-  <meta name="theme-color" content="#ffffff">
-
-  <meta name="viewport" content="width=device-width, initial-scale=2">
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-  <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-  <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
-
-  <script src="./js/shCore.js"         type="text/javascript"></script>
-  <script src="./js/shBrushPython.js" type="text/javascript"></script>
-  <script src="./js/shBrushPlain.js" type="text/javascript"></script>
-  <link href="./css/shCore.css"          rel="stylesheet" type="text/css" />
-  <link href="./css/shThemeDefault.css"  rel="stylesheet" type="text/css" />
-  <script src="./js/shAutoloader.js" type="text/javascript"></script>
-
-<script type="text/x-mathjax-config">
-MathJax.Hub.Config({
-  tex2jax: {
-    inlineMath: [['$','$'], ['\\(','\\)']],
-    processEscapes: true,
-  }
-});
-</script>
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_HTML-full"> </script>
-
+{% block extra_style %}
 <style>
-  .modal-dialog {width:90%;}
-  .thumbnail {
-    margin-bottom:6px;
-    cursor: pointer;
-  }
-  li a {
-      cursor: pointer;
-  }
-  .modal-title {text-align:center;}
-  .figure-container-own-row {
-    max-width:35%;
-    padding-bottom: 0px;
-  }
-  .figure-container {
-    {#max-width:35%;#}
-    padding-bottom: 0px;
-  }
-  .main-content {
-    padding-left: 30px;
-    padding-right: 30px;
-  }
-  .panel-group {
-    margin-bottom: 0px;
-  }
-  td,th {
-    text-align: right;
-  }
-  .table {
-    width: auto;
-    margin: auto;
-  }
-  body {padding-bottom: 55px;}
-
-  #search-clear {
-    position: absolute;
-    right: 20px;
-    top: 0;
-    bottom: 0;
-    height: 14px;
-    margin: auto;
-    font-size: 14px;
-    cursor: pointer;
-    color: #ccc;
-  }
+    .figure-container {
+        width: 60%;
+    }
+    .provenance {
+        color: rgba(54, 54, 54, 0.69);
+        font-style: italic;
+    }
 </style>
+{% endblock %}
 
-</head>
-<body>
-<div class="container-fluid">
-  <nav class="navbar navbar-inverse">
-    <div class="container-fluid">
-      <div class="navbar-header">
-        <a href="./" class="navbar-brand"><span class="glyphicon glyphicon-circle-arrow-left"></span> </a>
-        <div class="navbar-brand" href="#">{{ title }}</div>
-      </div>
-        <div class="navbar-form navbar-left form-group">
-          <input id="zoom-toggle" checked data-toggle="toggle" type="checkbox" data-on="Big" data-off="Normal">
-        </div>
-        <div class="navbar-form navbar-right form-group">
-          <input id="filter-input" type="text" class="form-control" placeholder="Enter Filter RegEx">
-          <span id="search-clear" class="glyphicon glyphicon-remove-circle"></span>
-        </div>
-          <ul class="nav navbar-nav navbar-right nav-pills">
-          {% if ana_source %}
-            <li class="active">
-              <a href="{{ ana_source }}">Analysis Source Code</a>
-            </li>
-          {% endif %}
-          {% if source %}
-            <li>
-              <a data-toggle="collapse" data-parent="#accordion"  href="#collapseSrc"> Report Source Code</a>
-            </li>
-          {% endif %}
-          {% if config %}
-            <li>
-              <a data-toggle="collapse" data-parent="#accordion" href="#collapseConfig">Analysis Configuration</a>
-            </li>
-          {% endif %}
-          </ul>
-    </div>
-  </nav>
-
-  {% if source %}
-      <div id="collapseSrc" class="panel-collapse collapse">
-          <div class="panel-body">
-              <script type="syntaxhighlighter" class="brush: python"><![CDATA[ {{ source|safe}} ]]></script>
-          </div>
-      </div>
-  {% endif %}
-  {% if config %}
-    <div id="collapseConfig" class="panel-collapse collapse">
-      <div class="panel-body">
-        <script type="syntaxhighlighter" class="brush: plain"><![CDATA[ {{ config|safe}} ]]></script>
-      </div>
-    </div>
-  {% endif %}
-
-
-  <div class="row main-content">
+{% block main_content %}
+<div class="row main-content">
+  <div class="col-md-0 col-lg-2 col-xl-3"> </div>
+  <div class="col-md-12 col-lg-8 col-xl-6">
   {% block body %}
   {% endblock %}
   </div>
-
-  <div class="row">
-    <div class="col-12-lg">
-      <div class="panel-group" id="accordion">
-        <div class="panel-heading">
-          <h4 class="panel-title" style="text-align:center">
-          </h4>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div class="col-md-0 col-lg-2 col-xl-3"> </div>
 </div>
-<div id="myModal" class="modal fade" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal">×</button>
-        <h3 class="modal-title">Heading</h3>
-      </div>
-      <div class="modal-body"> </div>
-   </div>
-  </div>
-</div>
-
-<div class="text-center">
-  <ul class="pagination"> </ul>
-</div>
-
-<div class="navbar navbar-inverse navbar-fixed-bottom">
-  <p class="navbar-text pull-left"> Built with <a href="https://github.com/cfangmeier/matplotboard">Matplotboard</a> </p>
-</div>
-
-</body>
-
-<script type="text/javascript">
-
-{% block data %}
-  var figures = [];
 {% endblock %}
 
-  let filter = "";
-  let focus = "";
-  let pages = [];
-  let pageIdx = 0;
-  const figs_per_page = 48;
+{% block extra_script %}
+<script type="text/javascript">
 
-  function getParameterByName(name, url) {
-    if (!url) url = window.location.href;
-    name = name.replace(/[\[\]]/g, "\\$&");
-    let regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)");
-    let results = regex.exec(url);
-    if (!results) return null;
-    if (!results[2]) return '';
-    return decodeURIComponent(results[2].replace(/\+/g, " "));
-  }
+  function set_focus(thumb_id) {
+    if (thumb_id === "_undefined") return;
+    let thumb = $("#"+thumb_id);
+    $('.modal-body').empty();
+    let title = thumb.parent('a').attr("title");
+    let title_elem = $('.modal-title');
+    title_elem.html(title);
+    MathJax.Hub.Queue(["Typeset",MathJax.Hub,title_elem[0]]);
 
-  function constructFigure(figure) {
-      return $(`\
-<div id="${figure['name']}" class="well center-block figure-container" style="padding:5px;">
-  <a title="${figure['title']}">
-    <img id="_${figure['name']}" src="./figures/${figure['name']}.png" class="thumbnail img-responsive center-block">
-  </a>
-  <div class="caption">
-    <p class="text-center"> ${figure['name']} </p>
-  </div>
-  <div class="caption" hidden style="overflow-x: auto">
-    <p class="text-left">${figure['html']}</p>
-    <div class="text-left">${figure['docs']}</div>
-  </div>
-</div>`);
-  }
-
-  function urlWithArgs(obj) {
-    let url = location.protocol + '//' + location.host + location.pathname;
-    let args = [];
-    for (let key in obj) {
-        if (obj.hasOwnProperty(key)) {
-            let val = obj[key];
-            if (val != null && val != '') {
-                args.push(encodeURIComponent(key) + "=" + encodeURIComponent(val))
-            }
-        }
-    }
-    if (args.length > 0) {
-        url += "?" + args.join("&");
-    }
-    return url;
-  }
-
-  function updateURL() {
-      let url = urlWithArgs({'filter': filter, 'focus': focus, 'page': pageIdx});
-      window.history.replaceState("", "", url);
-  }
-
-  function loadPage() {
-      let main_content = $('.main-content');
-      main_content.empty();
-      if (pages.length < pageIdx) return;
-      let page = [];
-      for (let figureIdx=0; figureIdx<pages[pageIdx].length; figureIdx++) {
-          page.push(constructFigure(pages[pageIdx][figureIdx]));
-      }
-      main_content.append(page);
-      setZoom();
-      MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
-
-      $('.thumbnail').click(function() {
-          $('.modal-body').empty();
-          let title = $(this).parent('a').attr("title");
-          let title_elem = $('.modal-title');
-          title_elem.html(title);
-          {#var math = document.getElementById("MathExample");#}
-          MathJax.Hub.Queue(["Typeset",MathJax.Hub,title_elem[0]]);
-
-          $($(this).parents('div').html()).appendTo('.modal-body');
-          $('#myModal .caption').prop('hidden', false);
-          $('#myModal').modal({show:true});
-          focus = this.id.substring(1);
-          updateURL();
-      });
-
-  }
-
-  function filterPlots() {
-      let regex = new RegExp(filter);
-      pages = [];
-      let page = [];
-      for (let figIdx=0; figIdx<figures.length; figIdx++) {
-          if (!filter || regex.test(figures[figIdx]['name'])) {
-              page.push(figures[figIdx]);
-              if (page.length >= figs_per_page) {
-                  pages.push(page);
-                  page = [];
-              }
-          }
-      }
-      if (page.length > 0) pages.push(page);
-
-      let page_buttons = [];
-      for (let idx=0; idx<pages.length; idx++) {
-          if (idx === pageIdx)
-              page_buttons.push($(`<li class="active"><a>${idx+1}</a></li>`));
-          else
-              page_buttons.push($(`<li><a>${idx+1}</a></li>`));
-      }
-      $('.pagination').empty().append(page_buttons);
-
-      $('.pagination li a').click(function() {
-          pageIdx = parseInt(this.innerText)-1;
-          loadPage();
-          $('.pagination li').removeClass("active");
-          $(this).parent().addClass("active");
-          updateURL();
-      });
-
-      loadPage();
-  }
-
-  function setZoom() {
-      const normalClasses = "col-xs-4 col-md-2";
-      const zoomClasses = "col-xs-12 col-md-4";
-      let figs = $(".figure-container");
-      if ($("#zoom-toggle").prop('checked')) {
-          figs.removeClass(normalClasses).addClass(zoomClasses);
-      } else {
-          figs.removeClass(zoomClasses).addClass(normalClasses);
-      }
+    $(thumb.parents('div').html()).appendTo('.modal-body');
+    $('#myModal .caption').prop('hidden', false);
+    $('#myModal').modal({show:true});
+    focus = thumb_id.substring(1);
+    updateURL();
   }
 
   $(function(){
-    SyntaxHighlighter.all();
-
-    $("#myModal").on('hide.bs.modal', function() {
-      focus = '';
-      updateURL();
+    $('.thumbnail').click(function() {
+      set_focus($(this).prop("id"));
     });
-
-    $('#zoom-toggle').bootstrapToggle('off');
-    $('#zoom-toggle').change(function() {
-        setZoom();
-    });
-
-    let filter_input = $("#filter-input");
-
-    filter_input.keyup(function(e) {
-      if (e.which === 13) {
-        filter = this.value;
-        pageIdx = 0;
-        filterPlots();
-        updateURL();
-      }
-    });
-
-    $("#search-clear").click(function(){
-      filter_input.val('');
-      filter = '';
-      pageIdx = 0;
-      filterPlots();
-      updateURL();
-    });
-
-    pageIdx = parseInt(getParameterByName("page"));
-    if (pageIdx == null || isNaN(pageIdx)) pageIdx = 0;
-    filter = getParameterByName("filter");
-    if (filter === null) filter = '';
-    filter_input.val(filter);
-    filterPlots(filter);
-    focus = getParameterByName("focus");
-    if (focus) {$("#_"+focus).click();}
   });
 </script>
-</html>
+{% endblock %}
