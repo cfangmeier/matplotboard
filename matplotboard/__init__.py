@@ -3,6 +3,9 @@
     The functions in this module used to declare, render, and compile figures generated with matplotlib.
 """
 
+import sys
+import logging
+import traceback
 from markdown import Markdown
 from namedlist import namedlist
 import matplotlib.pyplot as plt
@@ -26,9 +29,9 @@ MD = Markdown(extensions=[
 CONFIG = {'output_dir': 'dashboard',
           'scale': 1.0,
           'multiprocess': False,
-          'steps': ('render', 'compile'),
           'publish_remote': None,
           'publish_dir': 'published',
+          'early_abort': False,
           }
 
 
@@ -91,7 +94,14 @@ def _render_one(args):
     scale = CONFIG['scale']
 
     plt.gcf().set_size_inches(scale * 10, scale * 10)
-    argdict, docs, retval = _exec_fig(figure)
+    try:
+        argdict, docs, retval = _exec_fig(figure)
+    except Exception as e:
+        if CONFIG['early_abort']:
+            raise e
+        else:
+            print(f'Error while building plot \'{name}\'\n{traceback.format_exc()}', file=sys.stderr)
+
     fig_fname = join(figure_dir, f'{name}.png')
     plt.savefig(fig_fname)
     plt.close()
@@ -104,6 +114,7 @@ def _render_one(args):
         for key, val in argdict.items():
             plain_args[str(key)] = str(val)
         f.write(dumps(plain_args))
+    return True
 
 
 def render(figures, titles=None, refresh=True, ncores=None):
@@ -194,6 +205,7 @@ def generate_report(figures, title, output='report.html',
         body = ext_rex.sub(r'{{ figure("\1", "", "\3", True) }}', body)
         body = rex.sub(r'{{ figure("\1", "", "\3") }}', body)
         html = MD.convert(body)
+
         if MD.Meta.get('slides', False):
             template = env.from_string(f'''
 {{% extends("slides.j2")%}}

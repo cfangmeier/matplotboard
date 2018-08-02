@@ -8,49 +8,212 @@ demonstrated with an example.
 ``` python
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotboard as mpb
 
-from matplotboard import (decl_fig, render, generate_report)
+@mpb.decl_fig
+def cool_fig():
+    xs = np.linspace(-10, 10, 100)
+    ys = xs**2
+    plt.plot(xs, ys)
+
+if __name__ == '__main__':
+    figures = {
+        'cool_fig': cool_fig,
+    }
+
+    mpb.render(figures)
+    mpb.generate_report(figures, 'Report')
+```
+You can view the results [here](https://cfangmeier.github.io/matplotboard/report.html). Let's walk through this a one part at a time.
+
+First, we import `numpy` and `matplotlib` for some calculations, and plotting,
+respectively. As well as `matplotboard` itself.
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotboard as mpb
+```
 
 
-@decl_fig
+`matplotboard` relies upon `matplotlib` for the underlying rendering engine so
+other plotting libraries are not supported, however, wrappers around
+`matplotlib` such as `seaborn` should work.
+
+Next, we declare the function that is actually going to do the plotting.
+
+```python
+@mpb.decl_fig
 def cool_fig():
     xs = np.linspace(-10,10, 100)
     ys = xs**2
     plt.plot(xs, ys)
+```
 
+The `decl_fig` decorator modifies the function to work with `matplotboard`. A
+plotting function decorated with `decl_fig` must fulfill the following
+contract:
 
-@decl_fig
-def fig_with_args(amp, freq):
-    '''
-    A plot of a sine wave with configurable amplitude and frequency.
-    '''
-    xs = np.linspace(-np.pi, np.pi, 100)
-    ys = amp*np.sin(xs*freq)
-    plt.plot(xs, ys)
+  - A clean `figure` has been initiated and the function will do any plotting
+    on that figure.
+  - It is free to subdivide the figure into as many axes as required, but
+    shouldn't create additional `Figure` objects.
+  - The function can optionally return Markdown text that will be [rendered]()
+    along with the plot.
+  - The function shouldn't call `savefig`. This is handled by `matplotboard`
+    automatically.
 
+Finally, we declare the actual figures that we want to generate, and tell `matplotboard` to render the figures and assemble them into an interactive webpage.
+
+```python
+if __name__ == '__main__':
+    figures = {
+        'cool_fig': cool_fig,
+    }
+
+    mpb.render(figures)
+    mpb.generate_report(figures, 'Report')
+```
+
+Both `render`, and `generate_report` take a dictionary as their first argument.
+The dictionary keys are strings that are interpreted as the individual figure
+names, and the the dictionary values are one of
+
+  - a `decl_fig` decorated function
+  - a two-tuple containing the decorated function and a tuple of `args` for the function.
+  - a three-tuple containing the decorated function, a tuple of `args` for the function, and a dict of `kwargs` for the function
+
+By varying the `args` and `kwargs` a single decorated function can be used to
+make many plots. For example, you may have a dataset that is divided into
+several categories and you would like to plot some variable for each category.
+You could do this by writing one plotting function and calling it with
+different arguments to specify each of the categories.
+
+Try running the example. If everything works, there should be a new folder in
+the current directory called `dashboard`, and within it an html file called
+`report.html`. Open it with your browser to see a dashboard containing a single
+plot. Try clicking on it for a zoomed view!
+
+A single plot is not very interesting. Where `matplotboard` starts to really become useful is when you have lots of plots to generate. Check out the following example.
+
+```python
+from itertools import product
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotboard as mpb
+
+@mpb.decl_fig
+def cool_fig(func, scale, color='b'):
+    xs = np.linspace(-scale, scale, 100)
+    f = {
+        'sin': lambda xs: np.sin(xs),
+        'tan': lambda xs: np.tan(xs),
+        'exp': lambda xs: np.exp(xs),
+    }[func]
+    ys = f(xs)
+    plt.plot(xs, ys, color=color)
 
 if __name__ == '__main__':
-    figures = {'my_cool_fig': cool_fig,
-               'slow': (fig_with_args, (1, np.pi)),
-               'fast': (fig_with_args, (0.75, 3*np.pi)),
-               }
+    mpb.configure(multiprocess=True)
+    figures = {}
 
-    render(figures)
-    generate_report(figures, 'Report',
-                    source=__file__,
-                    body="""
-# Making **Awesome Dashboards**
+    for color, function, scale in product('rbgk', ['sin', 'tan', 'exp'], np.linspace(1, 20, 20)):
+        figures[f'{function}_{color}_{scale}'] = cool_fig, (function, scale), dict(color=color)
 
-Sometimes you just want to push out a static html page with plots and relevant
-commentary. For example, what does a parabola look like?
 
-fig::my_cool_fig
-
-There we go, `matplotboard` also supports plotting functions that take arguments.
-
-fig::slow
-fig::fast
-
-    """)
+    mpb.render(figures)
+    mpb.generate_report(figures, 'Report')
 ```
-You can view the fantastic generated report [here](https://cfangmeier.github.io/matplotboard/report.html)
+
+What's changed here?
+
+First of all, the plotting function has been enhanced to take a few arguments
+that modify it's behavior. You can now specify whether you would like to plot
+`sin`, `tan`, or `exp` as well as effectively set the x length scale.
+
+Second, we now are programatically making all combinations of plotting color,
+function, and scale with the `product` function and declaring a plot for each
+combination. This comes down to `4*3*20=240` different plots. To speed things
+up a bit, this example also switches on `matplotboard`'s multiprocessing
+support. Try running this example and open up the resulting web-page just as
+before. Note the pagination feature limiting the number of figures displayed at
+once. Also, try selecting a plot and moving through the figures on the page
+with the arrow keys. Finally, try out the filter box in the top right. A few
+interesting searches may be "sin\_", "\_r\_", or "tan\_g\_9" to search for all
+`sin` plots, all red plots, and just the `tan_g_9` plot, respectively.
+
+For one final example, let's look at the support for writing reports the incorporate generated figures.
+
+```python
+from itertools import product
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotboard as mpb
+
+@mpb.decl_fig
+def cool_fig(func, scale, color='b'):
+    xs = np.linspace(-scale, scale, 100)
+    f = {
+        'sin': lambda xs: np.sin(xs),
+        'tan': lambda xs: np.tan(xs),
+        'exp': lambda xs: np.exp(xs),
+    }[func]
+    ys = f(xs)
+    plt.plot(xs, ys, color=color)
+
+report = '''\
+Authors: Will Hunting
+Date: December 2, 1997
+
+# Report On Functions
+
+## Introduction
+
+As we all know, there are many functions. An example is the sine function seen below.
+
+fig::sin_b_1
+
+## Other Functions
+
+However, there are many other functions such as the tangent or exponential.
+
+<div class="row">
+<div class="col-md-6 row_fig">
+fig::tan_r_1|The rugged tangent function
+</div>
+<div class="col-md-6 row_fig">
+fig::exp_g_2|The majestic exponential function
+</div>
+</div>
+
+The decision of which function is best is up to *you*!
+
+'''
+
+if __name__ == '__main__':
+    mpb.configure(multiprocess=True)
+    figures = {}
+
+    for color, function, scale in product('rbgk', ['sin', 'tan', 'exp'], np.linspace(1, 5, 5)):
+        figures[f'{function}_{color}_{int(scale)}'] = cool_fig, (function, scale), dict(color=color)
+
+    mpb.render(figures, refresh=False)
+    mpb.generate_report(figures, 'Report', body=report)
+```
+
+The `generate_report` function supports an optional `body` argument which
+signals `matplotboard` to render the markdown into a report, rather than making
+a simple plot dump. A special syntax is used for embedding generated figures.
+
+```
+fig::figure_name|Optional Caption
+```
+
+`Bootstrap` is included by default so multiple figures side-by-side are
+possible by use of a `row` div as shown in the example.
+
+In addition to including generated figures via the `fig::` construct, static
+figures (such as diagrams or photographs) can be included via the `locfig::`
+(think local figure) construct, where instead of the figure name, you specify
+the path to the file. Finally, pictures out on the internet can be specified
+via `extfig::`.
