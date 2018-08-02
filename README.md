@@ -1,7 +1,8 @@
-# Matplotboard
+![Matplotboard: For your Health!](https://cfangmeier.github.io/matplotboard/matplotboard.png)
+
 
 A utility to generate html dashboards using matplotlib. Matplotboard makes it easy to
-wrap your plotting functions and embed them into a Markdown document. This is best
+wrap your plotting functions and dump the plots into a searchable webpage or a markdown report. This is best
 demonstrated with an example.
 
 
