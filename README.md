@@ -24,7 +24,7 @@ if __name__ == '__main__':
     mpb.render(figures)
     mpb.generate_report(figures, 'Report')
 ```
-You can view the results [here](https://cfangmeier.github.io/matplotboard/report.html). Let's walk through this a one part at a time.
+You can view the results [here](https://cfangmeier.github.io/matplotboard/example_01/dashboard/report.html). Let's walk through this a one part at a time.
 
 First, we import `numpy` and `matplotlib` for some calculations, and plotting,
 respectively. As well as `matplotboard` itself.
@@ -58,7 +58,7 @@ contract:
     on that figure.
   - It is free to subdivide the figure into as many axes as required, but
     shouldn't create additional `Figure` objects.
-  - The function can optionally return Markdown text that will be [rendered]()
+  - The function can optionally return Markdown text that will be rendered
     along with the plot.
   - The function shouldn't call `savefig`. This is handled by `matplotboard`
     automatically.
@@ -125,7 +125,7 @@ if __name__ == '__main__':
     mpb.generate_report(figures, 'Report')
 ```
 
-What's changed here?
+What's changed? You can view the page [here](https://cfangmeier.github.io/matplotboard/example_02/dashboard/report.html)
 
 First of all, the plotting function has been enhanced to take a few arguments
 that modify it's behavior. You can now specify whether you would like to plot
@@ -200,6 +200,8 @@ if __name__ == '__main__':
     mpb.render(figures, refresh=False)
     mpb.generate_report(figures, 'Report', body=report)
 ```
+
+See result of this example [here](https://cfangmeier.github.io/matplotboard/example_03/dashboard/report.html).
 
 The `generate_report` function supports an optional `body` argument which
 signals `matplotboard` to render the markdown into a report, rather than making
