@@ -11,14 +11,25 @@ import matplotlib.pyplot as plt
 __all__ = ['decl_fig',
            'render',
            'generate_report',
-           'configure']
-
-
-MD = Markdown(extensions=['mdx_math', 'tables', 'markdown.extensions.meta'],
-              extension_configs={'mdx_math': {'enable_dollar_delimiter': True}})
+           'configure',
+           'publish']
+MD = Markdown(extensions=[
+                 # 'mdx_math',
+                 'tables',
+                 'markdown.extensions.meta',
+                 'markdown.extensions.fenced_code',
+                 'markdown.extensions.codehilite',
+              ],
+              extension_configs={'markdown.extensions.codehilite': {'css_class': 'highlight',
+                                                                    'linenums': True}}
+              )
 CONFIG = {'output_dir': 'dashboard',
           'scale': 1.0,
-          'multiprocess': False}
+          'multiprocess': False,
+          'steps': ('render', 'compile'),
+          'publish_remote': None,
+          'publish_dir': 'published',
+          }
 
 
 def configure(**config):
@@ -113,6 +124,7 @@ def render(figures, titles=None, refresh=True, ncores=None):
         copytree(join(pkg_dir, 'static', 'js'), join(output_dir, 'js'))
         copytree(join(pkg_dir, 'static', 'css'), join(output_dir, 'css'))
         copytree(join(pkg_dir, 'static', 'icons'), join(output_dir, 'icons'))
+        makedirs(join(output_dir, 'aux_figures'), exist_ok=True)
         makedirs(figure_dir, exist_ok=True)
 
         nplots = len(figures)
@@ -140,9 +152,10 @@ def render(figures, titles=None, refresh=True, ncores=None):
 
 
 def generate_report(figures, title, output='report.html',
-                    source=None, ana_source=None, config=None, body:str=None):
+                    source=None, ana_source=None, config=None, body: str=None):
     import re
     from os.path import join
+    from shutil import copy
     from json import dumps
     from jinja2 import Environment, PackageLoader, select_autoescape
     from urllib.parse import quote
@@ -157,26 +170,45 @@ def generate_report(figures, title, output='report.html',
                         'zip': zip,
                         })
 
+    ext_rex = re.compile(r'extfig::([^|]+)(\|(.*$))?', flags=re.MULTILINE)
+    loc_rex = re.compile(r'locfig::([^|]+)(\|(.*$))?', flags=re.MULTILINE)
+    rex = re.compile(r'fig::([a-zA-Z0-9_\-]+)(\|(.*$))?', flags=re.MULTILINE)
+
     if source is not None:
         with open(source, 'r') as f:
             source = f.read()
+            source = f'```python\n {source}\n```'
+            source = MD.convert(source)
 
     if body is not None:
         if body.endswith(".md"):
             with open(body, "r") as f:
                 body = f.read()
-        ext_rex = re.compile(r'extfig::([^|]+)(\|(.*$))?', flags=re.MULTILINE)
+        for match in loc_rex.finditer(body):
+            src_file = match.expand(r"\1")
+            dst_file = join(output_dir,'aux_figures', src_file.replace('/', '_').replace('..','_'))
+            print(src_file, dst_file)
+            copy(src_file, dst_file)
+
+        body = loc_rex.sub(r'{{ figure("\1", "", "\3", True, True) }}', body)
         body = ext_rex.sub(r'{{ figure("\1", "", "\3", True) }}', body)
-        rex = re.compile(r'fig::(\w+)(\|(.*$))?', flags=re.MULTILINE)
         body = rex.sub(r'{{ figure("\1", "", "\3") }}', body)
-        body = MD.convert(body)
-        template = env.from_string(f'''
+        html = MD.convert(body)
+        if MD.Meta.get('slides', False):
+            template = env.from_string(f'''
+{{% extends("slides.j2")%}}
+{{% block body %}}
+{body}
+{{% endblock %}}
+        ''')
+        else:
+            template = env.from_string(f'''
 {{% extends("report.j2")%}}
 {{% block body %}}
 <p class="provenance"> {', '.join(MD.Meta['authors'])} <br> {MD.Meta['date'][0]}</p>
-{body}
+{html}
 {{% endblock %}}
-    ''')
+        ''')
     else:
         body = dumps([fig._asdict() for fig in figures.values()])
         template = env.from_string(f'''
@@ -194,3 +226,30 @@ var figures = {body};
             ana_source=ana_source,
             config=config,
             ))
+
+
+def publish():
+    from datetime import datetime as dt
+    from shutil import rmtree, copytree
+
+    # data_dir = "data/DataMCCRPlots/outputs"
+    par_dir = CONFIG['output_dir']
+    dir_name = f'{par_dir}_{dt.strftime(dt.now(), "%Y_%m_%d_%H")}'
+    rmtree(dir_name, ignore_errors=True)
+    copytree(par_dir, dir_name)
+
+    if CONFIG['publish_remote'] is not None:
+        from openssh_wrapper import SSHConnection
+        print("connecting to remote server... ", end='', flush=True)
+        username, remote = CONFIG['publish_remote'].split('@')
+        conn = SSHConnection(remote, login=username)
+        print('done.')
+        print("preparing destination... ", end='', flush=True)
+        conn.run(f'mkdir -p {CONFIG["publish_dir"]}')
+        conn.run(f'rm -rf {CONFIG["publish_dir"]}/{dir_name}')
+        print('done.')
+        conn.timeout = 0
+        print("copying files... ", end='', flush=True)
+        conn.scp((dir_name, ), CONFIG["publish_dir"])
+        print('done.')
+

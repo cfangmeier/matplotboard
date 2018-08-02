@@ -1,5 +1,5 @@
 {% extends("base.j2") %}
-{% macro figure(name, title, caption, external=False) %}
+{% macro figure(name, title, caption, external=False, clean_fname=False) %}
     {% if external %}
       {% set id = name.replace(':', '_').replace('/', '_').replace('.', '_') %}
     {% else %}
@@ -7,7 +7,9 @@
     {% endif %}
 <div id="{{ id }}" class="well center-block figure-container" style="padding:5px;">
   <a title="{{ title }}">
-      {% if external %}
+      {% if clean_fname %}
+    <img id="_{{ id }}" src="aux_figures/{{ name.replace('/', '_').replace('..', '_') }}" class="thumbnail img-responsive center-block">
+      {% elif external %}
     <img id="_{{ id }}" src="{{ name }}" class="thumbnail img-responsive center-block">
       {% else %}
     <img id="_{{ id }}" src="./figures/{{ name }}.png" class="thumbnail img-responsive center-block">
@@ -21,13 +23,22 @@
 
 {% block extra_style %}
 <style>
-    .figure-container {
-        width: 60%;
-    }
-    .provenance {
-        color: rgba(54, 54, 54, 0.69);
-        font-style: italic;
-    }
+  .figure-container {
+    width: 60%;
+  }
+  .row_fig .figure-container {
+    width: 100%;
+  }
+  .provenance {
+    color: rgba(54, 54, 54, 0.69);
+    font-style: italic;
+  }
+  .row_fig.col-md-6:nth-child(2n+1) {
+    clear: both;
+  }
+  .row_fig.col-md-4:nth-child(3n+1) {
+    clear: both;
+  }
 </style>
 {% endblock %}
 

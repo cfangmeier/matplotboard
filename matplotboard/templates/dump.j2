@@ -35,6 +35,18 @@
   .main-content > .col-md-4:nth-child(3n+1) {
     clear: both;
   }
+  div.highlight {
+    text-align: left;
+  }
+  .highlight pre {
+    border: None;
+  }
+  .linenodiv pre {
+      border: None;
+  }
+  .highlighttable {
+    border: 1px solid #ccc
+  }
 </style>
 {% endblock %}
 
@@ -69,7 +81,8 @@
   {% if source %}
       <div id="collapseSrc" class="panel-collapse collapse">
           <div class="panel-body">
-              <script type="syntaxhighlighter" class="brush: python"><![CDATA[ {{ source|safe}} ]]></script>
+{#              <script type="syntaxhighlighter" class="brush: python"><![CDATA[ {{ source|safe}} ]]></script>#}
+              {{ source|safe}}
           </div>
       </div>
   {% endif %}
@@ -81,6 +94,7 @@
     </div>
   {% endif %}
 
+  <div id="regex-failed"></div>
 
   <div class="row main-content">
   {% block body %}
@@ -207,7 +221,15 @@
   }
 
   function filterPlots() {
-      let regex = new RegExp(filter);
+      let regex;
+      try {
+          regex = new RegExp(filter, "m");
+      } catch (e) {
+          $("#regex-failed").html('<div class="alert alert-danger">Regex Failed to Compile! Check this <a href="https://www.w3schools.com/jsref/jsref_obj_regexp.asp">reference</a>.</div>')
+          return;
+      }
+      $("#regex-failed").html('')
+
       pages = [];
       let page = [];
       for (let figIdx = 0; figIdx < figures.length; figIdx++) {
@@ -255,7 +277,6 @@
   }
 
   $(function(){
-    SyntaxHighlighter.all();
 
     $("#myModal").on('hide.bs.modal', function() {
       focus = '';
