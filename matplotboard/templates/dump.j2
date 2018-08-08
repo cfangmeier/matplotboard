@@ -16,19 +16,6 @@
     margin-bottom: 0px;
   }
   body {padding-bottom: 55px;}
-
-  #search-clear {
-    position: absolute;
-    right: 20px;
-    top: 0;
-    bottom: 0;
-    height: 14px;
-    margin: auto;
-    font-size: 14px;
-    cursor: pointer;
-    color: #ccc;
-  }
-
   .main-content > .col-md-2:nth-child(6n+1) {
     clear: both;
   }
@@ -45,7 +32,11 @@
       border: None;
   }
   .highlighttable {
-    border: 1px solid #ccc
+    border: 1px solid #ccc;
+    width: 100%;
+    width: -moz-available;          /* WebKit-based browsers will ignore this. */
+    width: -webkit-fill-available;  /* Mozilla-based browsers will ignore this. */
+    width: fill-available;
   }
 </style>
 {% endblock %}
@@ -55,8 +46,7 @@
     <input id="zoom-toggle" checked data-toggle="toggle" type="checkbox" data-on="Big" data-off="Normal">
   </div>
   <div class="navbar-form navbar-right form-group">
-    <input id="filter-input" type="text" class="form-control" placeholder="Enter Filter RegEx">
-    <span id="search-clear" class="glyphicon glyphicon-remove-circle"></span>
+    <input id="filter-input" type="search" class="form-control" placeholder="Enter Filter RegEx">
   </div>
   <ul class="nav navbar-nav navbar-right nav-pills">
   {% if ana_source %}
@@ -66,7 +56,7 @@
   {% endif %}
   {% if source %}
     <li>
-      <a data-toggle="collapse" data-parent="#accordion"  href="#collapseSrc"> Report Source Code</a>
+      <a data-toggle="collapse" data-parent="#accordion"  href="#collapseSrc"><span class="glyphicon glyphicon-modal-window"></span></a>
     </li>
   {% endif %}
   {% if config %}
@@ -81,8 +71,7 @@
   {% if source %}
       <div id="collapseSrc" class="panel-collapse collapse">
           <div class="panel-body">
-{#              <script type="syntaxhighlighter" class="brush: python"><![CDATA[ {{ source|safe}} ]]></script>#}
-              {{ source|safe}}
+              {{source|safe}}
           </div>
       </div>
   {% endif %}
@@ -266,8 +255,8 @@
   }
 
   function setZoom() {
-      const normalClasses = "col-xs-4 col-md-2";
-      const zoomClasses = "col-xs-12 col-md-4";
+      const normalClasses = "col-xs-12 col-sm-4 col-md-2";
+      const zoomClasses = "col-xs-12 col-sm-6 col-md-4";
       let figs = $(".figure-container");
       if ($("#zoom-toggle").prop('checked')) {
           figs.removeClass(normalClasses).addClass(zoomClasses);
@@ -297,14 +286,6 @@
         filterPlots();
         updateURL();
       }
-    });
-
-    $("#search-clear").click(function(){
-      filter_input.val('');
-      filter = '';
-      pageIdx = 0;
-      filterPlots();
-      updateURL();
     });
 
     $(window).keypress(function(e) {
