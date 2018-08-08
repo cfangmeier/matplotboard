@@ -132,7 +132,7 @@ def render(figures, titles=None, refresh=True, ncores=None):
     if refresh:
         rmtree(output_dir, ignore_errors=True)
         makedirs(output_dir, exist_ok=True)
-        copytree(join(pkg_dir, 'static', 'js'), join(output_dir, 'js'))
+        # copytree(join(pkg_dir, 'static', 'js'), join(output_dir, 'js'))
         copytree(join(pkg_dir, 'static', 'css'), join(output_dir, 'css'))
         copytree(join(pkg_dir, 'static', 'icons'), join(output_dir, 'icons'))
         makedirs(join(output_dir, 'aux_figures'), exist_ok=True)
