@@ -8,7 +8,7 @@ setup(
     author_email='caleb@fangmeier.tech',
     url='https://github.com/cfangmeier/matplotboard',
     name='matplotboard',
-    version='0.7.0',
+    version='0.7.1',
     description='Generate simple HTML dashboards using matplotlib',
     long_description=desc,
     long_description_content_type='text/markdown',
@@ -21,5 +21,6 @@ setup(
     package_data={'matplotboard': ['templates/*.j2',
                                    'static/css/*.css',
                                    'static/js/*.js',
+                                   'static/icons/*',
                                    ]},
 )

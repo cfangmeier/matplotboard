@@ -117,7 +117,7 @@ def _render_one(args):
     return True
 
 
-def render(figures, titles=None, refresh=True, ncores=None):
+def render(figures, titles=None, build=True, ncores=None):
     from shutil import rmtree, copytree
     from os import makedirs
     from os.path import join, dirname, abspath
@@ -129,7 +129,7 @@ def render(figures, titles=None, refresh=True, ncores=None):
     output_dir = CONFIG['output_dir']
     figure_dir = join(output_dir, 'figures')
 
-    if refresh:
+    if build:
         rmtree(output_dir, ignore_errors=True)
         makedirs(output_dir, exist_ok=True)
         # copytree(join(pkg_dir, 'static', 'js'), join(output_dir, 'js'))
