@@ -19,7 +19,7 @@ if __name__ == '__main__':
     figures = {}
 
     for color, function, scale in product('rbgk', ['sin', 'tan', 'exp'], np.linspace(1, 20, 20)):
-        figures[f'{function}_{color}_{int(scale)}'] = cool_fig, (function, scale), dict(color=color)
+        figures[f'{function}_{color}_{int(scale)}'] = cool_fig(function, scale, color=color)
 
 
     mpb.render(figures)

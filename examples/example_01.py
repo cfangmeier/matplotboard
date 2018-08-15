@@ -10,7 +10,7 @@ def cool_fig():
 
 if __name__ == '__main__':
     figures = {
-        'cool_fig': cool_fig,
+        'cool_fig': cool_fig(),
     }
 
     mpb.render(figures)

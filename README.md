@@ -19,7 +19,7 @@ def cool_fig():
 
 if __name__ == '__main__':
     figures = {
-        'cool_fig': cool_fig,
+        'cool_fig': cool_fig(),
     }
 
     mpb.render(figures)
@@ -69,7 +69,7 @@ Finally, we declare the actual figures that we want to generate, and tell `matpl
 ```python
 if __name__ == '__main__':
     figures = {
-        'cool_fig': cool_fig,
+        'cool_fig': cool_fig(),
     }
 
     mpb.render(figures)
@@ -78,17 +78,13 @@ if __name__ == '__main__':
 
 Both `render`, and `generate_report` take a dictionary as their first argument.
 The dictionary keys are strings that are interpreted as the individual figure
-names, and the the dictionary values are one of
+names, and the the dictionary values the plots we want to generate (note that the function must be called, even if there are no arguments).
 
-  - a `decl_fig` decorated function
-  - a two-tuple containing the decorated function and a tuple of `args` for the function.
-  - a three-tuple containing the decorated function, a tuple of `args` for the function, and a dict of `kwargs` for the function
-
-By varying the `args` and `kwargs` a single decorated function can be used to
-make many plots. For example, you may have a dataset that is divided into
-several categories and you would like to plot some variable for each category.
-You could do this by writing one plotting function and calling it with
-different arguments to specify each of the categories.
+By writing plotting functions with arguments, a single function can be reused
+to make many different plots. For example, you may have a dataset that is
+divided into several categories and you would like to plot some variable for
+each category. You could do this by writing one plotting function and calling
+it with different arguments to specify each of the categories.
 
 Try running the example. If everything works, there should be a new folder in
 the current directory called `dashboard`, and within it an html file called
@@ -119,7 +115,7 @@ if __name__ == '__main__':
     figures = {}
 
     for color, function, scale in product('rbgk', ['sin', 'tan', 'exp'], np.linspace(1, 20, 20)):
-        figures[f'{function}_{color}_{scale}'] = cool_fig, (function, scale), dict(color=color)
+        figures[f'{function}_{color}_{scale}'] = cool_fig(function, scale, color=color)
 
 
     mpb.render(figures)
@@ -196,7 +192,7 @@ if __name__ == '__main__':
     figures = {}
 
     for color, function, scale in product('rbgk', ['sin', 'tan', 'exp'], np.linspace(1, 5, 5)):
-        figures[f'{function}_{color}_{int(scale)}'] = cool_fig, (function, scale), dict(color=color)
+        figures[f'{function}_{color}_{int(scale)}'] = cool_fig(function, scale, color=color)
 
     mpb.render(figures, refresh=False)
     mpb.generate_report(figures, 'Report', body=report)

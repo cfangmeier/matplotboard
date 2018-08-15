@@ -10,7 +10,6 @@ from markdown import Markdown
 from namedlist import namedlist
 import matplotlib.pyplot as plt
 
-
 __all__ = ['decl_fig',
            'render',
            'generate_report',
@@ -39,9 +38,25 @@ def configure(**config):
     CONFIG.update(config)
 
 
-def decl_fig(fn):
-    from functools import wraps
+class Figure:
 
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+        self.html = ''
+        self.argdict = {}
+        self.docs = ''
+        self.render_fn = lambda *args, **kwargs: None
+
+    def __call__(self):
+        txt_raw = self.render_fn(*self.args, **self.kwargs)
+        if not txt_raw:
+            txt_raw = ''
+        self.html = MD.convert(txt_raw)
+        self.argdict = self._fn_call_to_dict(self.render_fn, *self.args, **self.kwargs)
+        self.docs = self._process_docs(self.render_fn)
+
+    @staticmethod
     def _fn_call_to_dict(fn, *args, **kwargs):
         from inspect import signature
         from html import escape
@@ -49,6 +64,7 @@ def decl_fig(fn):
         pvals = list(args) + list(kwargs.values())
         return {escape(str(k)): escape(str(v)) for k, v in zip(pnames, pvals)}
 
+    @staticmethod
     def _process_docs(fn):
         from inspect import getdoc
         raw = getdoc(fn)
@@ -57,33 +73,17 @@ def decl_fig(fn):
         else:
             return ''
 
-    @wraps(fn)
-    def f(*args, **kwargs):
-        txt = fn(*args, **kwargs)
-        argdict = _fn_call_to_dict(fn, *args, **kwargs)
-        docs = _process_docs(fn)
-        if not txt:
-            txt = ''
-        html = MD.convert(txt)
 
-        return argdict, docs, html
+def decl_fig(fn):
+    from functools import update_wrapper
 
-    return f
+    class WrappedPlotter:
+        def __call__(self, *args, **kwargs):
+            figure = Figure(*args, **kwargs)
+            figure.render_fn = fn
+            return figure
 
-
-def _exec_fig(fig):
-    if not isinstance(fig, tuple):
-        fn, args, kwargs = fig, (), {}
-    elif len(fig) == 1:
-        fn, args, kwargs = fig[0], (), {}
-    elif len(fig) == 2:
-        fn, args, kwargs = fig[0], fig[1], {}
-    elif len(fig) == 3:
-        fn, args, kwargs = fig[0], fig[1], fig[2]
-    else:
-        raise ValueError('Plot tuple must be of format (func), '
-                         f'or (func, tuple), or (func, tuple, dict). Got {fig}')
-    return fn(*args, **kwargs)
+    return update_wrapper(WrappedPlotter(), fn)
 
 
 def _render_one(args):
@@ -95,7 +95,7 @@ def _render_one(args):
 
     plt.gcf().set_size_inches(scale * 10, scale * 10)
     try:
-        argdict, docs, retval = _exec_fig(figure)
+        figure()
     except Exception as e:
         if CONFIG['early_abort']:
             raise e
@@ -106,12 +106,12 @@ def _render_one(args):
     plt.savefig(fig_fname)
     plt.close()
     with open(join(figure_dir, f'{name}.docs.html'), 'w') as f:
-        f.write(docs)
+        f.write(figure.docs)
     with open(join(figure_dir, f'{name}.retval.html'), 'w') as f:
-        f.write(retval)
+        f.write(figure.html)
     with open(join(figure_dir, f'{name}.args.json'), 'w') as f:
         plain_args = {}
-        for key, val in argdict.items():
+        for key, val in figure.argdict.items():
             plain_args[str(key)] = str(val)
         f.write(dumps(plain_args))
     return True
@@ -122,8 +122,8 @@ def render(figures, titles=None, build=True, ncores=None):
     from os import makedirs
     from os.path import join, dirname, abspath
     from json import loads
-    from multiprocessing import Pool, cpu_count
-    Figure = namedlist('Figure', 'name fig_fname title argdict docs html idx')
+    from pathos.multiprocessing import Pool, cpu_count
+    RenderedFigure = namedlist('RenderedFigure', 'name fig_fname title argdict docs html idx')
 
     pkg_dir = dirname(abspath(__file__))
     output_dir = CONFIG['output_dir']
@@ -156,7 +156,7 @@ def render(figures, titles=None, build=True, ncores=None):
             with open(join(figure_dir, f'{name}.args.json'), 'r') as f:
                 argdict = loads(f.read())
             title = titles[name] if titles is not None else name
-            figures[name] = Figure(name, fig_fname, title, argdict, docs, retval, idx)
+            figures[name] = RenderedFigure(name, fig_fname, title, argdict, docs, retval, idx)
     except FileNotFoundError as e:
         print("File not found, you probably need to generate the plots! (ie set refresh=True)")
         raise e
