@@ -21,6 +21,7 @@ MD = Markdown(extensions=[
                  'markdown.extensions.meta',
                  'markdown.extensions.fenced_code',
                  'markdown.extensions.codehilite',
+                 'markdown.extensions.toc',
               ],
               extension_configs={'markdown.extensions.codehilite': {'css_class': 'highlight',
                                                                     'linenums': True}}
@@ -29,8 +30,10 @@ CONFIG = {'output_dir': 'dashboard',
           'scale': 1.0,
           'multiprocess': False,
           'publish_remote': None,
+          'publish_url': None,
           'publish_dir': 'published',
           'early_abort': False,
+          'publish_data': None,
           }
 
 
@@ -139,7 +142,11 @@ def render(figures, titles=None, build=True, ncores=None):
         makedirs(figure_dir, exist_ok=True)
 
         nplots = len(figures)
-        args = ((idx, nplots, name, figure, figure_dir) for idx, (name, figure) in enumerate(figures.items()))
+        args = []
+        for idx, (name, figure) in enumerate(figures.items()):
+            if type(figure) != Figure:
+                raise TypeError(name+' must be Figure, found: ' + str(type(figure)))
+            args.append((idx, nplots, name, figure, figure_dir))
         if CONFIG['multiprocess']:
             pool = Pool(ncores if ncores is not None else cpu_count())
             pool.map(_render_one, args)
@@ -183,7 +190,7 @@ def generate_report(figures, title, output='report.html',
 
     ext_rex = re.compile(r'extfig::([^|]+)(\|(.*$))?', flags=re.MULTILINE)
     loc_rex = re.compile(r'locfig::([^|]+)(\|(.*$))?', flags=re.MULTILINE)
-    rex = re.compile(r'fig::([a-zA-Z0-9_\-]+)(\|(.*$))?', flags=re.MULTILINE)
+    rex = re.compile(r'fig(!?)::([a-zA-Z0-9_\-]+)(\|(.*$))?', flags=re.MULTILINE)
 
     if source is not None:
         with open(source, 'r') as f:
@@ -203,7 +210,7 @@ def generate_report(figures, title, output='report.html',
 
         body = loc_rex.sub(r'{{ figure("\1", "", "\3", True, True) }}', body)
         body = ext_rex.sub(r'{{ figure("\1", "", "\3", True) }}', body)
-        body = rex.sub(r'{{ figure("\1", "", "\3") }}', body)
+        body = rex.sub(r'{{ figure("\2", "", "\4", False, False, "\1") }}', body)
         html = MD.convert(body)
 
         if MD.Meta.get('slides', False):
@@ -243,6 +250,7 @@ var figures = {body};
 def publish():
     from datetime import datetime as dt
     from shutil import rmtree, copytree
+    from os.path import join
 
     # data_dir = "data/DataMCCRPlots/outputs"
     par_dir = CONFIG['output_dir']
@@ -261,7 +269,13 @@ def publish():
         conn.run(f'rm -rf {CONFIG["publish_dir"]}/{dir_name}')
         print('done.')
         conn.timeout = 0
-        print("copying files... ", end='', flush=True)
+        print("copying plots... ", end='', flush=True)
         conn.scp((dir_name, ), CONFIG["publish_dir"])
         print('done.')
+        if CONFIG['publish_data'] is not None:
+            print("copying data... ", end='', flush=True)
+            conn.scp((CONFIG['publish_data'], ), join(CONFIG["publish_dir"], dir_name, 'data'))
+            print('done.')
+        if CONFIG['publish_url'] is not None:
+            print('The plots are available at ' + CONFIG['publish_url']+'/' + dir_name)
 

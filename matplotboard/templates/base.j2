@@ -83,6 +83,27 @@ MathJax.Hub.Config({
   .MathJax {
     border: none !important;
   }
+
+  div.highlight {
+      text-align: left;
+  }
+  .highlight pre {
+      border: None;
+      margin-bottom: 0px;
+  }
+  .linenodiv pre {
+      border: None;
+      border-right: 1px dashed gray;
+      border-radius: 0px;
+      margin-bottom: 0px;
+  }
+  .highlighttable {
+      border: 1px solid #ccc;
+      width: 100%;
+      width: -moz-available;          /* WebKit-based browsers will ignore this. */
+      width: -webkit-fill-available;  /* Mozilla-based browsers will ignore this. */
+      width: fill-available;
+  }
 </style>
 
 {% block extra_style %} {% endblock %}

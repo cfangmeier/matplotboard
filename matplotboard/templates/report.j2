@@ -1,5 +1,5 @@
 {% extends("base.j2") %}
-{% macro figure(name, title, caption, external=False, clean_fname=False) %}
+{% macro figure(name, title, caption, external=False, clean_fname=False, extra_caption=False) %}
     {% if external %}
       {% set id = name.replace(':', '_').replace('/', '_').replace('.', '_') %}
     {% else %}
@@ -15,8 +15,17 @@
     <img id="_{{ id }}" src="./figures/{{ name }}.png" class="thumbnail img-responsive center-block">
       {% endif %}
   </a>
-  <div class="caption">
-    <p class="text-center"> {{ caption }} </p>
+  <div class="caption" style="overflow-x:auto; position:relative">
+      {% if extra_caption %}
+          <span class="glyphicon glyphicon-plus" data-toggle="collapse" data-target="#{{ id }}_cap" style="position:absolute"></span>
+          <p class="text-center">
+              {{ caption }} </p>
+          <div id="{{ id }}_cap" class="collapse">
+              {{figures[name].html|safe}}
+          </div>
+      {% else %}
+          <p class="text-center"> {{ caption }} </p>
+      {% endif %}
   </div>
 </div>
 {% endmacro %}
@@ -66,7 +75,6 @@
     MathJax.Hub.Queue(["Typeset",MathJax.Hub,title_elem[0]]);
 
     $(thumb.parents('div').html()).appendTo('.modal-body');
-    $('#myModal .caption').prop('hidden', false);
     $('#myModal').modal({show:true});
   }
 
