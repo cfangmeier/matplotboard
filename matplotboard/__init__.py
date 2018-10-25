@@ -2,6 +2,7 @@
     __init__.py
     The functions in this module used to declare, render, and compile figures generated with matplotlib.
 """
+from __future__ import print_function
 
 import sys
 import logging
@@ -9,6 +10,8 @@ import traceback
 from markdown import Markdown
 from namedlist import namedlist
 import matplotlib.pyplot as plt
+
+PY3 = sys.version_info.major == 3
 
 __all__ = ['decl_fig',
            'render',
@@ -41,7 +44,7 @@ def configure(**config):
     CONFIG.update(config)
 
 
-class Figure:
+class Figure(object):
 
     def __init__(self, *args, **kwargs):
         self.args = args
@@ -61,9 +64,9 @@ class Figure:
 
     @staticmethod
     def _fn_call_to_dict(fn, *args, **kwargs):
-        from inspect import signature
+        from inspect import getargspec
         from html import escape
-        pnames = list(signature(fn).parameters)
+        pnames = list(getargspec(fn).args)
         pvals = list(args) + list(kwargs.values())
         return {escape(str(k)): escape(str(v)) for k, v in zip(pnames, pvals)}
 
@@ -93,7 +96,7 @@ def _render_one(args):
     from os.path import join
     from json import dumps
     idx, nplots, name, figure, figure_dir = args;
-    print(f'Building plot #{idx+1}/{nplots}: {name}')
+    print('Building plot #{}/{}: {}'.format(idx+1, nplots, name))
     scale = CONFIG['scale']
 
     plt.gcf().set_size_inches(scale * 10, scale * 10)
@@ -103,26 +106,36 @@ def _render_one(args):
         if CONFIG['early_abort']:
             raise e
         else:
-            print(f'Error while building plot \'{name}\'\n{traceback.format_exc()}', file=sys.stderr)
+            print('Error while building plot \'{}\'\n{}'.format(name, traceback.format_exc()),
+                  file=sys.stderr)
 
-    fig_fname = join(figure_dir, f'{name}.png')
+    fig_fname = join(figure_dir, name+'.png')
     plt.savefig(fig_fname)
     plt.close()
-    with open(join(figure_dir, f'{name}.docs.html'), 'w') as f:
+    with open(join(figure_dir, name+'.docs.html'), 'w') as f:
         f.write(figure.docs)
-    with open(join(figure_dir, f'{name}.retval.html'), 'w') as f:
+    with open(join(figure_dir, name+'.retval.html'), 'w') as f:
         f.write(figure.html)
-    with open(join(figure_dir, f'{name}.args.json'), 'w') as f:
+    with open(join(figure_dir, name+'.args.json'), 'w') as f:
         plain_args = {}
         for key, val in figure.argdict.items():
             plain_args[str(key)] = str(val)
         f.write(dumps(plain_args))
     return True
 
+def makedirs(path):
+    from os import makedirs as osmakedirs
+    if PY3:
+        osmakedirs(path, exist_ok=True)
+    else:
+        try:
+            osmakedirs(path)
+        except OSError:  # raised from file exists
+            pass
+
 
 def render(figures, titles=None, build=True, ncores=None):
     from shutil import rmtree, copytree
-    from os import makedirs
     from os.path import join, dirname, abspath
     from json import loads
     from pathos.multiprocessing import Pool, cpu_count
@@ -134,12 +147,12 @@ def render(figures, titles=None, build=True, ncores=None):
 
     if build:
         rmtree(output_dir, ignore_errors=True)
-        makedirs(output_dir, exist_ok=True)
+        makedirs(output_dir)
         # copytree(join(pkg_dir, 'static', 'js'), join(output_dir, 'js'))
         copytree(join(pkg_dir, 'static', 'css'), join(output_dir, 'css'))
         copytree(join(pkg_dir, 'static', 'icons'), join(output_dir, 'icons'))
-        makedirs(join(output_dir, 'aux_figures'), exist_ok=True)
-        makedirs(figure_dir, exist_ok=True)
+        makedirs(join(output_dir, 'aux_figures'))
+        makedirs(figure_dir)
 
         nplots = len(figures)
         args = []
@@ -155,28 +168,31 @@ def render(figures, titles=None, build=True, ncores=None):
                 _render_one(arg)
     try:
         for idx, (name, _) in enumerate(figures.items()):
-            fig_fname = join(figure_dir, f'{name}.png')
-            with open(join(figure_dir, f'{name}.docs.html'), 'r') as f:
+            fig_fname = join(figure_dir, name+'.png')
+            with open(join(figure_dir, name+'.docs.html'), 'r') as f:
                 docs = f.read()
-            with open(join(figure_dir, f'{name}.retval.html'), 'r') as f:
+            with open(join(figure_dir, name+'.retval.html'), 'r') as f:
                 retval = f.read()
-            with open(join(figure_dir, f'{name}.args.json'), 'r') as f:
+            with open(join(figure_dir, name+'.args.json'), 'r') as f:
                 argdict = loads(f.read())
             title = titles[name] if titles is not None else name
             figures[name] = RenderedFigure(name, fig_fname, title, argdict, docs, retval, idx)
-    except FileNotFoundError as e:
+    except IOError as e:
         print("File not found, you probably need to generate the plots! (ie set refresh=True)")
-        raise e
+        sys.exit(-1)
 
 
 def generate_report(figures, title, output='report.html',
-                    source=None, ana_source=None, config=None, body: str=None):
+                    source=None, ana_source=None, config=None, body=None):
     import re
     from os.path import join
     from shutil import copy
     from json import dumps
     from jinja2 import Environment, PackageLoader, select_autoescape
-    from urllib.parse import quote
+    if PY3:
+        from urllib.parse import quote
+    else:
+        from urllib import quote
     output_dir = CONFIG['output_dir']
 
     env = Environment(
@@ -195,7 +211,7 @@ def generate_report(figures, title, output='report.html',
     if source is not None:
         with open(source, 'r') as f:
             source = f.read()
-            source = f'```python\n {source}\n```'
+            source = '```python\n {}\n```'.format(source)
             source = MD.convert(source)
 
     if body is not None:
@@ -214,28 +230,28 @@ def generate_report(figures, title, output='report.html',
         html = MD.convert(body)
 
         if MD.Meta.get('slides', False):
-            template = env.from_string(f'''
+            template = env.from_string('''
 {{% extends("slides.j2")%}}
 {{% block body %}}
-{body}
+{}
 {{% endblock %}}
-        ''')
+        '''.format(body))
         else:
-            template = env.from_string(f'''
+            template = env.from_string('''
 {{% extends("report.j2")%}}
 {{% block body %}}
-<p class="provenance"> {', '.join(MD.Meta['authors'])} <br> {MD.Meta['date'][0]}</p>
-{html}
+<p class="provenance"> {} <br> {}</p>
+{}
 {{% endblock %}}
-        ''')
+        '''.format(', '.join(MD.Meta['authors']), MD.Meta['date'][0], html))
     else:
         body = dumps([fig._asdict() for fig in figures.values()])
-        template = env.from_string(f'''
+        template = env.from_string('''
 {{% extends("dump.j2")%}}
 {{% block data %}}
-var figures = {body};
+var figures = {};
 {{% endblock %}}
-    ''')
+    '''.format(body))
 
     with open(join(output_dir, output), 'w') as f:
         f.write(template.render(
@@ -252,21 +268,27 @@ def publish():
     from shutil import rmtree, copytree
     from os.path import join
 
-    # data_dir = "data/DataMCCRPlots/outputs"
     par_dir = CONFIG['output_dir']
-    dir_name = f'{par_dir}_{dt.strftime(dt.now(), "%Y_%m_%d_%H")}'
+    dir_name = '{}_{}'.format(par_dir, dt.strftime(dt.now(), "%Y_%m_%d_%H"))
     rmtree(dir_name, ignore_errors=True)
     copytree(par_dir, dir_name)
 
-    if CONFIG['publish_remote'] is not None:
+    if CONFIG['publish_remote'] in ('local', 'localhost'):
+        makedirs(CONFIG['publish_dir'])
+        pubdir = join(CONFIG['publish_dir'], dir_name)
+        rmtree(pubdir, ignore_errors=True)
+        copytree(dir_name, pubdir)
+        if CONFIG['publish_url'] is not None:
+            print('The plots are available at ' + CONFIG['publish_url']+'/' + dir_name)
+    elif CONFIG['publish_remote'] is not None:
         from openssh_wrapper import SSHConnection
         print("connecting to remote server... ", end='', flush=True)
         username, remote = CONFIG['publish_remote'].split('@')
         conn = SSHConnection(remote, login=username)
         print('done.')
         print("preparing destination... ", end='', flush=True)
-        conn.run(f'mkdir -p {CONFIG["publish_dir"]}')
-        conn.run(f'rm -rf {CONFIG["publish_dir"]}/{dir_name}')
+        conn.run('mkdir -p {}'.format(CONFIG["publish_dir"]))
+        conn.run('rm -rf {}/{}'.format(CONFIG["publish_dir"], dir_name))
         print('done.')
         conn.timeout = 0
         print("copying plots... ", end='', flush=True)
