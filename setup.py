@@ -17,6 +17,7 @@ setup(
                       'Markdown',
                       'python-markdown-math',
                       'namedlist',
+                      'openssh-wrapper',
                       'pathos'],
     packages=['matplotboard'],
     package_data={'matplotboard': ['templates/*.j2',

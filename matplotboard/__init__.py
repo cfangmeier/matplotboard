@@ -5,7 +5,6 @@
 from __future__ import print_function
 
 import sys
-import logging
 import traceback
 from markdown import Markdown
 from namedlist import namedlist
@@ -18,16 +17,15 @@ __all__ = ['decl_fig',
            'generate_report',
            'configure',
            'publish']
-MD = Markdown(extensions=[
-                 # 'mdx_math',
-                 'tables',
-                 'markdown.extensions.meta',
-                 'markdown.extensions.fenced_code',
-                 'markdown.extensions.codehilite',
-                 'markdown.extensions.toc',
-              ],
-              extension_configs={'markdown.extensions.codehilite': {'css_class': 'highlight',
-                                                                    'linenums': True}}
+MD = Markdown(extensions=['tables',
+                          'markdown.extensions.meta',
+                          'markdown.extensions.fenced_code',
+                          'markdown.extensions.codehilite',
+                          'markdown.extensions.toc',
+                          ],
+              extension_configs={
+                  'markdown.extensions.codehilite': {'css_class': 'highlight',
+                                                     'linenums': True}}
               )
 CONFIG = {'output_dir': 'dashboard',
           'scale': 1.0,
@@ -95,7 +93,7 @@ def decl_fig(fn):
 def _render_one(args):
     from os.path import join
     from json import dumps
-    idx, nplots, name, figure, figure_dir = args;
+    idx, nplots, name, figure, figure_dir = args
     print('Building plot #{}/{}: {}'.format(idx+1, nplots, name))
     scale = CONFIG['scale']
 
@@ -122,6 +120,7 @@ def _render_one(args):
             plain_args[str(key)] = str(val)
         f.write(dumps(plain_args))
     return True
+
 
 def makedirs(path):
     from os import makedirs as osmakedirs
@@ -177,7 +176,7 @@ def render(figures, titles=None, build=True, ncores=None):
                 argdict = loads(f.read())
             title = titles[name] if titles is not None else name
             figures[name] = RenderedFigure(name, fig_fname, title, argdict, docs, retval, idx)
-    except IOError as e:
+    except IOError:
         print("File not found, you probably need to generate the plots! (ie set refresh=True)")
         sys.exit(-1)
 
@@ -220,7 +219,8 @@ def generate_report(figures, title, output='report.html',
                 body = f.read()
         for match in loc_rex.finditer(body):
             src_file = match.expand(r"\1")
-            dst_file = join(output_dir,'aux_figures', src_file.replace('/', '_').replace('..','_'))
+            dst_file = join(output_dir, 'aux_figures',
+                            src_file.replace('/', '_').replace('..', '_'))
             print(src_file, dst_file)
             copy(src_file, dst_file)
 
@@ -245,7 +245,9 @@ def generate_report(figures, title, output='report.html',
 {{% endblock %}}
         '''.format(', '.join(MD.Meta['authors']), MD.Meta['date'][0], html))
     else:
-        body = dumps([fig._asdict() for fig in figures.values()])
+
+        body = dumps([figures[fig_name]._asdict()
+                      for fig_name in sorted(figures.keys())])
         template = env.from_string('''
 {{% extends("dump.j2")%}}
 {{% block data %}}
@@ -260,7 +262,7 @@ var figures = {};
             source=source,
             ana_source=ana_source,
             config=config,
-            ))
+        ))
 
 
 def publish():
@@ -282,22 +284,24 @@ def publish():
             print('The plots are available at ' + CONFIG['publish_url']+'/' + dir_name)
     elif CONFIG['publish_remote'] is not None:
         from openssh_wrapper import SSHConnection
-        print("connecting to remote server... ", end='', flush=True)
+        print("connecting to remote server... ", end='')
         username, remote = CONFIG['publish_remote'].split('@')
         conn = SSHConnection(remote, login=username)
         print('done.')
-        print("preparing destination... ", end='', flush=True)
+        print("preparing destination... ", end='')
         conn.run('mkdir -p {}'.format(CONFIG["publish_dir"]))
         conn.run('rm -rf {}/{}'.format(CONFIG["publish_dir"], dir_name))
         print('done.')
         conn.timeout = 0
-        print("copying plots... ", end='', flush=True)
+        print("copying plots... ", end='')
         conn.scp((dir_name, ), CONFIG["publish_dir"])
         print('done.')
         if CONFIG['publish_data'] is not None:
-            print("copying data... ", end='', flush=True)
+            print("copying data... ", end='')
             conn.scp((CONFIG['publish_data'], ), join(CONFIG["publish_dir"], dir_name, 'data'))
             print('done.')
+        print("fixing permissions... ", end='')
+        conn.run('chmod a+r -R {}'.format(join(CONFIG["publish_dir"], dir_name)))
+        print('done.')
         if CONFIG['publish_url'] is not None:
-            print('The plots are available at ' + CONFIG['publish_url']+'/' + dir_name)
-
+            print('The plots are available at ' + join(CONFIG['publish_url'], dir_name))
