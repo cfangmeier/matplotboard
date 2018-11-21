@@ -25,6 +25,12 @@
   .main-content > .col-md-4:nth-child(3n+1) {
     clear: both;
   }
+  .modal-header {
+      padding: 0px;
+  }
+  .pager {
+      margin: 1px;
+  }
 </style>
 {% endblock %}
 
@@ -275,11 +281,12 @@
       }
     });
 
-    $(window).keypress(function(e) {
-        if (e.key === "ArrowRight" && focus !== "") {
+    $(window).keydown(function(e) {
+        console.log(e.key);
+        if ((e.key === "ArrowRight" || e.key === "l") && focus !== "") {
             focus_next();
         }
-        if (e.key === "ArrowLeft" && focus !== "") {
+        if ((e.key === "ArrowLeft" || e.key === "h") && focus !== "") {
             focus_prev();
         }
     });
