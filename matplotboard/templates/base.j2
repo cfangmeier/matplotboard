@@ -104,6 +104,15 @@ MathJax.Hub.Config({
       width: -webkit-fill-available;  /* Mozilla-based browsers will ignore this. */
       width: fill-available;
   }
+  .bottom-nav {
+       min-height: 0px;
+       font-size: 16px;
+       height: 27px;
+       background-color: #222E;
+   }
+  .bottom-nav-text {
+      margin-top: 0px;
+  }
 </style>
 
 {% block extra_style %} {% endblock %}
@@ -138,8 +147,8 @@ MathJax.Hub.Config({
 </div>
 
 
-<div class="navbar navbar-inverse navbar-fixed-bottom">
-  <p class="navbar-text pull-left"> Built with <a href="https://github.com/cfangmeier/matplotboard">Matplotboard</a> </p>
+<div class="navbar navbar-inverse navbar-fixed-bottom bottom-nav">
+  <p class="navbar-text pull-left bottom-nav-text"> Built with <a href="https://github.com/cfangmeier/matplotboard">Matplotboard</a> </p>
 </div>
 
 </body>
