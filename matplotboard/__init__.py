@@ -104,7 +104,8 @@ def _render_one(args):
         figure()
     except Exception as e:
         if CONFIG['early_abort']:
-            raise e
+            logging.exception(e)
+            sys.exit(-1)
         else:
             print('Error while building plot \'{}\'\n{}'.format(name, traceback.format_exc()),
                   file=sys.stderr)
