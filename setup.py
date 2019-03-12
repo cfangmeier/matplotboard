@@ -1,25 +1,29 @@
 from setuptools import setup
 
-with open('requirements.txt') as req:
-    install_requires = [l.strip() for l in req.readlines()]
-
 with open('README.md') as f:
-    readme = f.read()
+    desc = f.read()
 
 setup(
-    name='matplotboard',
-    version='0.2.1',
-    description='Generate html dashboards using matplotlib, Jinja2, and Markdown.',
-    long_description=readme,
-    long_description_content_type='text/markdown',
     author='Caleb Fangmeier',
     author_email='caleb@fangmeier.tech',
-    url='https://github.com/cfangmeier/matplotboard/',
-    keywords=['Markdown', 'Jinja2', 'matplotlib', 'dashboard'],
+    url='https://github.com/cfangmeier/matplotboard',
+    name='matplotboard',
+    version='0.9.1',
+    description='Generate simple HTML dashboards using matplotlib',
+    long_description=desc,
+    long_description_content_type='text/markdown',
+    install_requires=['matplotlib',
+                      'Jinja2',
+                      'Markdown',
+                      'python-markdown-math',
+                      'namedlist',
+                      'openssh-wrapper',
+                      'pathos'],
     packages=['matplotboard'],
     package_data={'matplotboard': ['templates/*.j2',
                                    'static/css/*.css',
                                    'static/js/*.js',
+                                   'static/icons/*',
                                    ]},
     classifiers=[
         # How mature is this project? Common values are
@@ -42,9 +46,5 @@ setup(
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
-    ],
-    install_requires=install_requires,
-    dependency_links=[
-        "git+ssh://git@github.com/cfangmeier/latexipy.git#egg=latexipy"
     ],
 )

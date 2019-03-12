@@ -1,0 +1,157 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>{{ title }}</title>
+  <meta charset="utf-8">
+
+  <link rel="apple-touch-icon" sizes="57x57" href="./icons/apple-icon-57x57.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="./icons/apple-icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="./icons/apple-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="./icons/apple-icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="./icons/apple-icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="./icons/apple-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="./icons/apple-icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="./icons/apple-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-icon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192"  href="./icons/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="./icons/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
+  <link rel="manifest" href="./icons/manifest.json">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="msapplication-TileImage" content="./icons/ms-icon-144x144.png">
+  <meta name="theme-color" content="#ffffff">
+
+  <meta name="viewport" content="width=device-width, initial-scale=2">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+  <link href="./css/default.css" rel="stylesheet" type="text/css"/>
+
+  <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
+  <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+
+  <link href='https://fonts.googleapis.com/css?family=Average Sans' rel='stylesheet'>
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  tex2jax: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    processEscapes: true,
+  }
+});
+</script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_HTML-full"> </script>
+
+<style>
+  .modal-dialog {min-width:70%;}
+  .thumbnail {
+    margin-bottom:6px;
+    cursor: pointer;
+    max-height: 100%;
+    max-width: 100%;
+  }
+  li a {
+    cursor: pointer;
+  }
+  .modal-title {text-align:center;}
+  .figure-container {
+    padding-bottom: 2px;
+  }
+  .modal-body a img {
+      min-width: 80%;
+  }
+  .main-content {
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+  td,th {
+    text-align: right;
+  }
+  .table {
+    width: auto;
+    margin: auto;
+  }
+  body {
+    font-family: 'Average Sans', sans-serif;
+    font-size: 22px;
+    padding-bottom: 150px;
+  }
+
+  .MathJax {
+    border: none !important;
+  }
+
+  div.highlight {
+      text-align: left;
+  }
+  .highlight pre {
+      border: None;
+      margin-bottom: 0px;
+  }
+  .linenodiv pre {
+      border: None;
+      border-right: 1px dashed gray;
+      border-radius: 0px;
+      margin-bottom: 0px;
+  }
+  .highlighttable {
+      border: 1px solid #ccc;
+      width: 100%;
+      width: -moz-available;          /* WebKit-based browsers will ignore this. */
+      width: -webkit-fill-available;  /* Mozilla-based browsers will ignore this. */
+      width: fill-available;
+  }
+  .bottom-nav {
+       min-height: 0px;
+       font-size: 16px;
+       height: 27px;
+       background-color: #222E;
+   }
+  .bottom-nav-text {
+      margin-top: 0px;
+  }
+</style>
+
+{% block extra_style %} {% endblock %}
+
+</head>
+<body>
+<div class="container-fluid">
+  <nav class="navbar navbar-inverse">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a href="./" class="navbar-brand"><span class="glyphicon glyphicon-circle-arrow-left"></span> </a>
+        <div class="navbar-brand" href="#">{{ title }}</div>
+      </div>
+{% block nav %} {% endblock %}
+    </div>
+  </nav>
+
+{% block main_content %}
+{% endblock %}
+</div>
+<div id="myModal" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <ul class="pager">
+          <li class="modal-title">Heading</li>
+        </ul>
+      </div>
+      <div class="modal-body"> </div>
+   </div>
+  </div>
+</div>
+
+
+<div class="navbar navbar-inverse navbar-fixed-bottom bottom-nav">
+  <p class="navbar-text pull-left bottom-nav-text"> Built with <a href="https://github.com/cfangmeier/matplotboard">Matplotboard</a> </p>
+</div>
+
+</body>
+
+{% block extra_script %} {% endblock %}
+</html>

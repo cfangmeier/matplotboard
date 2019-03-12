@@ -1,0 +1,304 @@
+{% extends("base.j2") %}
+
+{% block extra_style %}
+<style>
+  .modal-dialog {width:90%;}
+  .figure-container {
+    padding-bottom: 0px;
+  }
+  .figure-container a img {
+      width: 95%;
+  }
+  .modal-body a img {
+      min-width: 50%;
+  }
+  .panel-group {
+    margin-bottom: 0px;
+  }
+  body {
+      padding-bottom: 55px;
+      font-size: 18px;
+  }
+  .main-content > .col-md-2:nth-child(6n+1) {
+    clear: both;
+  }
+  .main-content > .col-md-4:nth-child(3n+1) {
+    clear: both;
+  }
+  .modal-header {
+      padding: 0px;
+  }
+  .pager {
+      margin: 1px;
+  }
+</style>
+{% endblock %}
+
+{% block nav %}
+  <div class="navbar-form navbar-left form-group">
+    <input id="zoom-toggle" checked data-toggle="toggle" type="checkbox" data-on="Big" data-off="Normal">
+  </div>
+  <div class="navbar-form navbar-right form-group">
+    <input id="filter-input" type="search" class="form-control" placeholder="Enter Filter RegEx">
+  </div>
+  <ul class="nav navbar-nav navbar-right nav-pills">
+  {% if ana_source %}
+    <li class="active">
+      <a href="{{ ana_source }}">Analysis Source Code</a>
+    </li>
+  {% endif %}
+  {% if source %}
+    <li>
+      <a data-toggle="collapse" data-parent="#accordion"  href="#collapseSrc"><span class="glyphicon glyphicon-modal-window"></span></a>
+    </li>
+  {% endif %}
+  {% if config %}
+    <li>
+      <a data-toggle="collapse" data-parent="#accordion" href="#collapseConfig">Analysis Configuration</a>
+    </li>
+  {% endif %}
+  </ul>
+{% endblock %}
+
+{% block main_content %}
+  {% if source %}
+      <div id="collapseSrc" class="panel-collapse collapse">
+          <div class="panel-body">
+              {{source|safe}}
+          </div>
+      </div>
+  {% endif %}
+  {% if config %}
+    <div id="collapseConfig" class="panel-collapse collapse">
+      <div class="panel-body">
+        <script type="syntaxhighlighter" class="brush: plain"><![CDATA[ {{ config|safe}} ]]></script>
+      </div>
+    </div>
+  {% endif %}
+
+  <div id="regex-failed"></div>
+
+  <div class="row main-content">
+  {% block body %}
+  {% endblock %}
+  </div>
+
+  <div class="row">
+    <div class="col-12-lg">
+      <div class="panel-group" id="accordion">
+        <div class="panel-heading">
+          <h4 class="panel-title" style="text-align:center">
+          </h4>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<div class="text-center">
+  <ul class="pagination"> </ul>
+</div>
+{% endblock %}
+
+
+{% block extra_script %}
+<script type="text/javascript">
+
+{% block data %}
+  var figures = [];
+{% endblock %}
+
+  let filter = "";
+  let focus = "";
+  let pages = [];
+  let pageIdx = 0;
+  const figs_per_page = 48;
+
+  function getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    let regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)");
+    let results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+  }
+
+  function constructFigure(figure) {
+      return $(`\
+<div id="${figure['name']}" class="well center-block figure-container" style="padding:5px;">
+  <a title="${figure['title']}">
+    <img id="_${figure['name']}" src="./figures/${figure['name']}.png" class="thumbnail img-responsive center-block">
+  </a>
+  <div class="caption">
+    <p class="text-center"> ${figure['name']} </p>
+  </div>
+  <div class="caption" hidden style="overflow-x: auto">
+    <p class="text-left">${figure['html']}</p>
+    <div class="text-left">${figure['docs']}</div>
+  </div>
+</div>`);
+  }
+
+  function urlWithArgs(obj) {
+    let url = location.protocol + '//' + location.host + location.pathname;
+    let args = [];
+    for (let key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            let val = obj[key];
+            if (val != null && val != '') {
+                args.push(encodeURIComponent(key) + "=" + encodeURIComponent(val))
+            }
+        }
+    }
+    if (args.length > 0) {
+        url += "?" + args.join("&");
+    }
+    return url;
+  }
+
+  function updateURL() {
+      let url = urlWithArgs({'filter': filter, 'focus': focus, 'page': pageIdx});
+      window.history.replaceState("", "", url);
+  }
+
+  function set_focus(thumb_id) {
+      if (thumb_id === "_undefined") return;
+      let thumb = $("#"+thumb_id);
+      $('.modal-body').empty();
+      let title = thumb.parent('a').attr("title");
+      let title_elem = $('.modal-title');
+      title_elem.html(title);
+      MathJax.Hub.Queue(["Typeset",MathJax.Hub,title_elem[0]]);
+
+      $(thumb.parents('div').html()).appendTo('.modal-body');
+      $('#myModal .caption').prop('hidden', false);
+      $('#myModal').modal({show:true});
+      focus = thumb_id.substring(1);
+      updateURL();
+  }
+
+  function focus_next() {
+      set_focus("_"+$("#"+focus).next().prop("id"));
+  }
+
+  function focus_prev() {
+      set_focus("_"+$("#"+focus).prev().prop("id"));
+  }
+
+  function loadPage() {
+      let main_content = $('.main-content');
+      main_content.empty();
+      if (pages.length < pageIdx) return;
+      let page = [];
+      for (let figureIdx=0; figureIdx<pages[pageIdx].length; figureIdx++) {
+          page.push(constructFigure(pages[pageIdx][figureIdx]));
+      }
+      main_content.append(page);
+      setZoom();
+      MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
+
+      $('.thumbnail').click(function() {
+          set_focus($(this).prop("id"));
+      });
+  }
+
+  function filterPlots() {
+      let regex;
+      try {
+          regex = new RegExp(filter, "m");
+      } catch (e) {
+          $("#regex-failed").html('<div class="alert alert-danger">Regex Failed to Compile! Check this <a href="https://www.w3schools.com/jsref/jsref_obj_regexp.asp">reference</a>.</div>')
+          return;
+      }
+      $("#regex-failed").html('')
+
+      pages = [];
+      let page = [];
+      for (let figIdx = 0; figIdx < figures.length; figIdx++) {
+          if (!filter || regex.test(figures[figIdx]['name'])) {
+              page.push(figures[figIdx]);
+              if (page.length >= figs_per_page) {
+                  pages.push(page);
+                  page = [];
+              }
+          }
+      }
+      if (page.length > 0) pages.push(page);
+
+      let page_buttons = [];
+      if (pages.length > 1) {
+          for (let idx = 0; idx < pages.length; idx++) {
+              if (idx === pageIdx)
+                  page_buttons.push($(`<li class="active"><a>${idx + 1}</a></li>`));
+              else
+                  page_buttons.push($(`<li><a>${idx + 1}</a></li>`));
+          }
+      }
+      $('.pagination').empty().append(page_buttons);
+
+      $('.pagination li a').click(function() {
+          pageIdx = parseInt(this.innerText)-1;
+          loadPage();
+          $('.pagination li').removeClass("active");
+          $(this).parent().addClass("active");
+          updateURL();
+      });
+
+      loadPage();
+  }
+
+  function setZoom() {
+      const normalClasses = "col-xs-12 col-sm-4 col-md-2";
+      const zoomClasses = "col-xs-12 col-sm-6 col-md-4";
+      let figs = $(".figure-container");
+      if ($("#zoom-toggle").prop('checked')) {
+          figs.removeClass(normalClasses).addClass(zoomClasses);
+      } else {
+          figs.removeClass(zoomClasses).addClass(normalClasses);
+      }
+  }
+
+  $(function(){
+
+    $("#myModal").on('hide.bs.modal', function() {
+      focus = '';
+      updateURL();
+    });
+
+    $('#zoom-toggle').bootstrapToggle('off');
+    $('#zoom-toggle').change(function() {
+        setZoom();
+    });
+
+    let filter_input = $("#filter-input");
+
+    filter_input.keyup(function(e) {
+      if (e.which === 13) {
+        filter = this.value;
+        pageIdx = 0;
+        filterPlots();
+        updateURL();
+      }
+    });
+
+    $(window).keydown(function(e) {
+        console.log(e.key);
+        if ((e.key === "ArrowRight" || e.key === "l") && focus !== "") {
+            focus_next();
+        }
+        if ((e.key === "ArrowLeft" || e.key === "h") && focus !== "") {
+            focus_prev();
+        }
+    });
+
+    pageIdx = parseInt(getParameterByName("page"));
+    if (pageIdx == null || isNaN(pageIdx)) pageIdx = 0;
+    filter = getParameterByName("filter");
+    if (filter === null) filter = '';
+    filter_input.val(filter);
+    filterPlots(filter);
+    focus = getParameterByName("focus");
+    if (focus) {$("#_"+focus).click();}
+  });
+</script>
+{% endblock %}

@@ -1,117 +1,87 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <title>{{ title }}</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=2">
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+{% extends("base.j2") %}
+{% macro figure(name, title, caption, external=False, clean_fname=False, extra_caption=False) %}
+    {% if external %}
+      {% set id = name.replace(':', '_').replace('/', '_').replace('.', '_') %}
+    {% else %}
+      {% set id = name %}
+    {% endif %}
+<div id="{{ id }}" class="well center-block figure-container" style="padding:5px;">
+  <a title="{{ title }}">
+      {% if clean_fname %}
+    <img id="_{{ id }}" src="aux_figures/{{ name.replace('/', '_').replace('..', '_') }}" class="thumbnail img-responsive center-block">
+      {% elif external %}
+    <img id="_{{ id }}" src="{{ name }}" class="thumbnail img-responsive center-block">
+      {% else %}
+    <img id="_{{ id }}" src="./figures/{{ name }}.png" class="thumbnail img-responsive center-block">
+      {% endif %}
+  </a>
+  <div class="caption" style="overflow-x:auto; position:relative">
+      {% if extra_caption %}
+          <span class="glyphicon glyphicon-plus" data-toggle="collapse" data-target="#{{ id }}_cap" style="position:absolute"></span>
+          <p class="text-center">
+              {{ caption }} </p>
+          <div id="{{ id }}_cap" class="collapse">
+              {{figures[name].html|safe}}
+          </div>
+      {% else %}
+          <p class="text-center"> {{ caption }} </p>
+      {% endif %}
+  </div>
+</div>
+{% endmacro %}
 
-  <script src="./js/shCore.js"         type="text/javascript"></script>
-  <script src="./js/shBrushPython.js" type="text/javascript"></script>
-  <script src="./js/shBrushPlain.js" type="text/javascript"></script>
-  <link href="./css/shCore.css"          rel="stylesheet" type="text/css" />
-  <link href="./css/shThemeDefault.css"  rel="stylesheet" type="text/css" />
-  <script src="./js/shAutoloader.js" type="text/javascript"></script>
-
-<script type="text/x-mathjax-config">
-MathJax.Hub.Config({
-  config: ["MMLorHTML.js"],
-  jax: ["input/TeX", "output/HTML-CSS", "output/NativeMML"],
-  extensions: ["MathMenu.js", "MathZoom.js"]
-});
-</script>
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_HTML-full"> </script>
-
+{% block extra_style %}
 <style>
-    .modal-dialog {width:90%;}
-    .thumbnail {margin-bottom:6px;}
-    .modal-title {text-align:center;}
-    .figure-container {
-        max-width:35%;
-        padding-bottom: 0px;
-    }
-    .main-content {
-        padding-left: 30px;
-        padding-right: 30px;
-    }
-    .panel-group {
-        margin-bottom: 0px;
-    }
+  .figure-container {
+    width: 60%;
+  }
+  .row_fig .figure-container {
+    width: 100%;
+  }
+  .provenance {
+    color: rgba(54, 54, 54, 0.69);
+    font-style: italic;
+  }
+  .row_fig.col-md-6:nth-child(2n+1) {
+    clear: both;
+  }
+  .row_fig.col-md-4:nth-child(3n+1) {
+    clear: both;
+  }
 </style>
+{% endblock %}
 
-</head>
-<body>
-<div class="container-fluid">
-    <div class="row">
-        <a href="./" class="button"> Go Up <span class="glyphicon glyphicon-circle-arrow-left"></span> </a>
-    </div>
-    <div class="row main-content">
-    {% block body %}
-        <h3>No body supplied</h3>
-    {% endblock %}
-    </div>
-
-  <div class="row">
-    <div class="col-12-lg">
-      <div class="panel-group" id="accordion">
-        <div class="panel-heading">
-          <h4 class="panel-title" style="text-align:center">
-            {% if config %}
-            <button data-toggle="collapse" data-parent="#accordion" class="btn btn-default" href="#collapseConfig">Analysis Configuration</button>
-            {% endif %}
-            {% if source %}
-            <button data-toggle="collapse" data-parent="#accordion" class="btn btn-default" href="#collapseSrc">Report Source Code</button>
-            {% endif %}
-            {% if ana_source %}
-            <a class="btn btn-default" href="{{ ana_source }}" target="_blank">Analysis Source Code</a>
-            {% endif %}
-          </h4>
-        </div>
-
-      {% if config %}
-          <div id="collapseConfig" class="panel-collapse collapse">
-              <div class="panel-body">
-                  <script type="syntaxhighlighter" class="brush: plain"><![CDATA[ {{ config|safe}} ]]></script>
-              </div>
-          </div>
-      {% endif %}
-
-      {% if source %}
-        <div id="collapseSrc" class="panel-collapse collapse">
-          <div class="panel-body">
-<script type="syntaxhighlighter" class="brush: python"><![CDATA[ {{ source|safe}} ]]></script>
-          </div>
-        </div>
-      {% endif %}
-
-      </div>
-    </div>
+{% block main_content %}
+<div class="row main-content">
+  <div class="col-md-0 col-lg-2 col-xl-3"> </div>
+  <div class="col-md-12 col-lg-8 col-xl-6">
+  {% block body %}
+  {% endblock %}
   </div>
+  <div class="col-md-0 col-lg-2 col-xl-3"> </div>
 </div>
-<div id="myModal" class="modal fade" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal">×</button>
-        <h3 class="modal-title">Heading</h3>
-      </div>
-      <div class="modal-body"> </div>
-   </div>
-  </div>
-</div>
-</body>
+{% endblock %}
 
-<script>
-$('.thumbnail').click(function(){
+{% block extra_script %}
+<script type="text/javascript">
+
+  function set_focus(thumb_id) {
+    if (thumb_id === "_undefined") return;
+    let thumb = $("#"+thumb_id);
     $('.modal-body').empty();
-    var title = $(this).parent('a').attr("title");
-    $('.modal-title').html(title);
-    $($(this).parents('div').html()).appendTo('.modal-body');
-    $('#myModal').modal({show:true});
-});
-SyntaxHighlighter.all()
-</script>
+    let title = thumb.parent('a').attr("title");
+    let title_elem = $('.modal-title');
+    title_elem.html(title);
+    MathJax.Hub.Queue(["Typeset",MathJax.Hub,title_elem[0]]);
 
-</html>
+    $(thumb.parents('div').html()).appendTo('.modal-body');
+    $('#myModal').modal({show:true});
+  }
+
+  $(function(){
+    $('.thumbnail').click(function() {
+      set_focus($(this).prop("id"));
+    });
+  });
+</script>
+{% endblock %}
