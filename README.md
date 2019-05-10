@@ -1,5 +1,6 @@
 ![Matplotboard: For your Health!](https://cfangmeier.github.io/matplotboard/matplotboard.png)
 
+[![Build Status](https://travis-ci.com/cfangmeier/matplotboard.svg?branch=master)](https://travis-ci.com/cfangmeier/matplotboard)
 
 A utility to generate html dashboards using matplotlib. Matplotboard makes it easy to
 wrap your plotting functions and dump the plots into a searchable webpage or a markdown report. This is best
