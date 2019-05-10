@@ -3,6 +3,10 @@ from setuptools import setup
 with open('README.md') as f:
     desc = f.read()
 
+
+with open('requirements.txt') as f:
+    requirements = f.readlines()
+
 setup(
     author='Caleb Fangmeier',
     author_email='caleb@fangmeier.tech',
@@ -12,13 +16,7 @@ setup(
     description='Generate simple HTML dashboards using matplotlib',
     long_description=desc,
     long_description_content_type='text/markdown',
-    install_requires=['matplotlib',
-                      'Jinja2',
-                      'Markdown',
-                      'python-markdown-math',
-                      'namedlist',
-                      'openssh-wrapper',
-                      'pathos'],
+    install_requires=requirements,
     packages=['matplotboard'],
     package_data={'matplotboard': ['templates/*.j2',
                                    'static/css/*.css',
