@@ -43,6 +43,22 @@ fig::exp_g_2|The majestic exponential function
 
 The decision of which function is best is up to *you*!
 
+## Local Figures
+
+I happened to have a couple *really* fantastic figures on my computer that I
+want to include as well. How do I include them? It's easy! Just add them to
+the list of figures with the `loc_fig` function and they will be marked to be
+copied to the output directory. Here are a couple examples:
+
+<div class="row">
+<div class="col-md-6 row_fig">
+fig::image8
+</div>
+<div class="col-md-6 row_fig">
+fig::image10
+</div>
+</div>
+
 """
 
 if __name__ == "__main__":
@@ -55,6 +71,8 @@ if __name__ == "__main__":
         figures[f"{function}_{color}_{int(scale)}"] = cool_fig(
             function, scale, color=color
         )
+    figures['image8'] = mpb.loc_fig('figures/image8.png')
+    figures['image10'] = mpb.loc_fig('figures/image10.png')
 
-    mpb.render(figures, refresh=True)
+    mpb.render(figures)
     mpb.generate_report(figures, "Report", body=report)

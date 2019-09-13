@@ -7,6 +7,7 @@ from __future__ import print_function
 __version__ = "1.0.0"
 __all__ = [
     "decl_fig",
+    "loc_fig",
     "render",
     "generate_report",
     "configure",
@@ -72,10 +73,19 @@ class Figure(object):
     @staticmethod
     def _fn_call_to_dict(fn, *args, **kwargs):
         from inspect import getargspec
-        from html import escape
 
         pnames = list(getargspec(fn).args)
         pvals = list(args) + list(kwargs.values())
+
+        def escape(s, quote=True):
+            s = s.replace("&", "&amp;")  # Must be done first!
+            s = s.replace("<", "&lt;")
+            s = s.replace(">", "&gt;")
+            if quote:
+                s = s.replace('"', "&quot;")
+                s = s.replace('\'', "&#x27;")
+            return s
+
         return {escape(str(k)): escape(str(v)) for k, v in zip(pnames, pvals)}
 
     @staticmethod
@@ -99,6 +109,12 @@ def decl_fig(fn):
             return figure
 
     return update_wrapper(WrappedPlotter(), fn)
+
+
+def loc_fig(fname):
+    fig = Figure()
+    fig.orig_file = fname
+    return fig
 
 
 def _render_one(args):
@@ -224,7 +240,6 @@ def generate_report(
 ):
     import re
     from os.path import join
-    from shutil import copy
     from json import dumps
     from jinja2 import Environment, PackageLoader, select_autoescape
 
@@ -240,8 +255,6 @@ def generate_report(
     )
     env.globals.update({"quote": quote, "enumerate": enumerate, "zip": zip})
 
-    ext_rex = re.compile(r"extfig::([^|]+)(\|(.*$))?", flags=re.MULTILINE)
-    loc_rex = re.compile(r"locfig::([^|]+)(\|(.*$))?", flags=re.MULTILINE)
     rex = re.compile(r"fig(!?)::([a-zA-Z0-9_\-]+)(\|(.*$))?", flags=re.MULTILINE)
 
     if source is not None:
@@ -254,16 +267,6 @@ def generate_report(
         if body.endswith(".md"):
             with open(body, "r") as f:
                 body = f.read()
-        for match in loc_rex.finditer(body):
-            src_file = match.expand(r"\1")
-            dst_file = join(
-                output_dir, "aux_figures", src_file.replace("/", "_").replace("..", "_")
-            )
-            print(src_file, dst_file)
-            copy(src_file, dst_file)
-
-        body = loc_rex.sub(r'{{ figure("\1", "", "\3", True, True) }}', body)
-        body = ext_rex.sub(r'{{ figure("\1", "", "\3", True) }}', body)
         body = rex.sub(r'{{ figure("\2", "", "\4", False, False, "\1") }}', body)
         html = MD.convert(body)
 

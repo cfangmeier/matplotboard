@@ -1,4 +1,4 @@
-from . import render, generate_report, Figure, __version__
+from . import render, generate_report, loc_fig, __version__
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
@@ -15,15 +15,14 @@ if __name__ == "__main__":
 
     if args.dir:
         from glob import glob
-        from os.path import split, splitext
+        from os.path import join, split, splitext
 
         figures = {}
 
-        for f in glob("figs/*.png"):
+        for f in glob(join(args.dir, '*.png')):
             _, fname = split(f)
             fig_name, ext = splitext(fname)
-            figures[fig_name] = Figure()
-            figures[fig_name].orig_file = f
+            figures[fig_name] = loc_fig(f)
 
         render(figures)
         generate_report(figures, "Report")
