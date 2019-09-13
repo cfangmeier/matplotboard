@@ -4,15 +4,25 @@
 """
 from __future__ import print_function
 
+__version__ = "1.0.0"
+__all__ = [
+    "decl_fig",
+    "render",
+    "generate_report",
+    "configure",
+    "publish",
+    "__version__",
+]
+
 import sys
 import traceback
+import logging
 from markdown import Markdown
 from namedlist import namedlist
 import matplotlib.pyplot as plt
 
 PY3 = sys.version_info.major == 3
 
-__all__ = ["decl_fig", "render", "generate_report", "configure", "publish"]
 MD = Markdown(
     extensions=[
         "tables",
@@ -49,6 +59,7 @@ class Figure(object):
         self.argdict = {}
         self.docs = ""
         self.render_fn = lambda *args, **kwargs: None
+        self.orig_file = None  # set for pre-rendered figures
 
     def __call__(self):
         txt_raw = self.render_fn(*self.args, **self.kwargs)
@@ -95,27 +106,35 @@ def _render_one(args):
     from json import dumps
 
     idx, nplots, name, figure, figure_dir = args
-    print("Building plot #{}/{}: {}".format(idx + 1, nplots, name))
-    scale = CONFIG["scale"]
-
-    plt.gcf().set_size_inches(scale * 10, scale * 10)
-    try:
-        figure()
-    except Exception as e:
-        if CONFIG["early_abort"]:
-            logging.exception(e)
-            sys.exit(-1)
-        else:
-            print(
-                "Error while building plot '{}'\n{}".format(
-                    name, traceback.format_exc()
-                ),
-                file=sys.stderr,
-            )
-
     fig_fname = join(figure_dir, name + ".png")
-    plt.savefig(fig_fname)
-    plt.close()
+    print("Building plot #{}/{}: {}".format(idx + 1, nplots, name))
+
+    if figure.orig_file is None:
+        # Need to actually render this figure
+        scale = CONFIG["scale"]
+        plt.gcf().set_size_inches(scale * 10, scale * 10)
+        try:
+            figure()
+        except Exception as e:
+            if CONFIG["early_abort"]:
+                logging.exception(e)
+                sys.exit(-1)
+            else:
+                print(
+                    "Error while building plot '{}'\n{}".format(
+                        name, traceback.format_exc()
+                    ),
+                    file=sys.stderr,
+                )
+
+        plt.savefig(fig_fname)
+        plt.close()
+    else:
+        # File has been pre-rendered. Just copy to output directory.
+        from shutil import copy
+
+        copy(figure.orig_file, fig_fname)
+
     with open(join(figure_dir, name + ".docs.html"), "w") as f:
         f.write(figure.docs)
     with open(join(figure_dir, name + ".retval.html"), "w") as f:
@@ -157,7 +176,6 @@ def render(figures, titles=None, build=True, ncores=None):
     if build:
         rmtree(output_dir, ignore_errors=True)
         makedirs(output_dir)
-        # copytree(join(pkg_dir, 'static', 'js'), join(output_dir, 'js'))
         copytree(join(pkg_dir, "static", "css"), join(output_dir, "css"))
         copytree(join(pkg_dir, "static", "icons"), join(output_dir, "icons"))
         makedirs(join(output_dir, "aux_figures"))
@@ -249,29 +267,17 @@ def generate_report(
         body = rex.sub(r'{{ figure("\2", "", "\4", False, False, "\1") }}', body)
         html = MD.convert(body)
 
-        if MD.Meta.get("slides", False):
-            template = env.from_string(
-                """
-{{% extends("slides.j2")%}}
-{{% block body %}}
-{}
-{{% endblock %}}
-        """.format(
-                    body
-                )
-            )
-        else:
-            template = env.from_string(
-                """
+        template = env.from_string(
+            """
 {{% extends("report.j2")%}}
 {{% block body %}}
 <p class="provenance"> {} <br> {}</p>
 {}
 {{% endblock %}}
-        """.format(
-                    ", ".join(MD.Meta["authors"]), MD.Meta["date"][0], html
-                )
+    """.format(
+                ", ".join(MD.Meta["authors"]), MD.Meta["date"][0], html
             )
+        )
     else:
 
         body = dumps(
