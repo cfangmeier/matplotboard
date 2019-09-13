@@ -1,5 +1,5 @@
 from setuptools import setup
-from matplotboard import __version__
+from distutils.util import convert_path
 
 with open("README.md") as f:
     desc = f.read()
@@ -8,12 +8,18 @@ with open("README.md") as f:
 with open("requirements.txt") as f:
     requirements = f.readlines()
 
+# Below is to acquire the version without actually importing the package.
+main_ns = {}
+ver_path = convert_path("matplotboard/version.py")
+with open(ver_path) as ver_file:
+    exec(ver_file.read(), main_ns)
+
 setup(
     author="Caleb Fangmeier",
     author_email="caleb@fangmeier.tech",
     url="https://github.com/cfangmeier/matplotboard",
     name="matplotboard",
-    version=__version__,
+    version=main_ns["__version__"],
     description="Generate simple HTML dashboards using matplotlib",
     long_description=desc,
     long_description_content_type="text/markdown",
