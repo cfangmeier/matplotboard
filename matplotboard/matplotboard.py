@@ -4,14 +4,7 @@
 """
 from __future__ import print_function
 
-__all__ = [
-    "decl_fig",
-    "loc_fig",
-    "render",
-    "generate_report",
-    "configure",
-    "publish",
-]
+__all__ = ["decl_fig", "loc_fig", "render", "generate_report", "configure", "publish"]
 
 import sys
 import traceback
@@ -228,13 +221,13 @@ def render(figures, titles=None, build=True, ncores=None):
 
 
 def generate_report(
-        figures,
-        title,
-        output="report.html",
-        source=None,
-        ana_source=None,
-        config=None,
-        body=None,
+    figures,
+    title,
+    output="report.html",
+    source=None,
+    ana_source=None,
+    config=None,
+    body=None,
 ):
     import re
     from os.path import join
