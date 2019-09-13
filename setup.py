@@ -25,7 +25,7 @@ setup(
     long_description_content_type="text/markdown",
     install_requires=requirements,
     packages=["matplotboard"],
-    entry_points={"console_scripts": ["mbp=matplotboard:main"]},
+    entry_points={"console_scripts": ["mpb=matplotboard.__main__"]},
     package_data={
         "matplotboard": [
             "templates/*.j2",

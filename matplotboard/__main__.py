@@ -1,8 +1,18 @@
 from .version import __version__
 
 
-def main(args):
+def main():
+    from argparse import ArgumentParser
     from . import render, generate_report, loc_fig
+
+    parser = ArgumentParser("Matplotboard Command Line Utility")
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="%(prog)s {version}".format(version=__version__),
+    )
+    parser.add_argument("--dir", help="Directory containing png files to put in a dump")
+    args = parser.parse_args()
 
     if args.dir:
         from glob import glob
@@ -20,14 +30,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    from argparse import ArgumentParser
-
-    parser = ArgumentParser("Matplotboard Command Line Utility")
-    parser.add_argument(
-        "--version",
-        action="version",
-        version="%(prog)s {version}".format(version=__version__),
-    )
-    parser.add_argument("--dir", help="Directory containing png files to put in a dump")
-
-    main(parser.parse_args())
+    main()
