@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
         figures = {}
 
-        for f in glob(join(args.dir, '*.png')):
+        for f in glob(join(args.dir, "*.png")):
             _, fname = split(f)
             fig_name, ext = splitext(fname)
             figures[fig_name] = loc_fig(f)

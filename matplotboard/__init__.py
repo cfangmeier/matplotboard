@@ -83,7 +83,7 @@ class Figure(object):
             s = s.replace(">", "&gt;")
             if quote:
                 s = s.replace('"', "&quot;")
-                s = s.replace('\'', "&#x27;")
+                s = s.replace("'", "&#x27;")
             return s
 
         return {escape(str(k)): escape(str(v)) for k, v in zip(pnames, pvals)}

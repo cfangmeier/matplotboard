@@ -71,8 +71,8 @@ if __name__ == "__main__":
         figures[f"{function}_{color}_{int(scale)}"] = cool_fig(
             function, scale, color=color
         )
-    figures['image8'] = mpb.loc_fig('figures/image8.png')
-    figures['image10'] = mpb.loc_fig('figures/image10.png')
+    figures["image8"] = mpb.loc_fig("figures/image8.png")
+    figures["image10"] = mpb.loc_fig("figures/image10.png")
 
     mpb.render(figures)
     mpb.generate_report(figures, "Report", body=report)
