@@ -84,6 +84,36 @@ MathJax.Hub.Config({
   .MathJax {
     border: none !important;
   }
+
+  div.highlight {
+      text-align: left;
+  }
+  .highlight pre {
+      border: None;
+      margin-bottom: 0px;
+  }
+  .linenodiv pre {
+      border: None;
+      border-right: 1px dashed gray;
+      border-radius: 0px;
+      margin-bottom: 0px;
+  }
+  .highlighttable {
+      border: 1px solid #ccc;
+      width: 100%;
+      width: -moz-available;          /* WebKit-based browsers will ignore this. */
+      width: -webkit-fill-available;  /* Mozilla-based browsers will ignore this. */
+      width: fill-available;
+  }
+  .bottom-nav {
+       min-height: 0px;
+       font-size: 16px;
+       height: 27px;
+       background-color: #222E;
+   }
+  .bottom-nav-text {
+      margin-top: 0px;
+  }
 </style>
 
 
@@ -101,37 +131,21 @@ MathJax.Hub.Config({
   .panel-group {
     margin-bottom: 0px;
   }
-  body {padding-bottom: 55px;}
-
-  #search-clear {
-    position: absolute;
-    right: 20px;
-    top: 0;
-    bottom: 0;
-    height: 14px;
-    margin: auto;
-    font-size: 14px;
-    cursor: pointer;
-    color: #ccc;
+  body {
+      padding-bottom: 55px;
+      font-size: 18px;
   }
-
   .main-content > .col-md-2:nth-child(6n+1) {
     clear: both;
   }
   .main-content > .col-md-4:nth-child(3n+1) {
     clear: both;
   }
-  div.highlight {
-    text-align: left;
+  .modal-header {
+      padding: 0px;
   }
-  .highlight pre {
-    border: None;
-  }
-  .linenodiv pre {
-      border: None;
-  }
-  .highlighttable {
-    border: 1px solid #ccc
+  .pager {
+      margin: 1px;
   }
 </style>
 
@@ -150,8 +164,7 @@ MathJax.Hub.Config({
     <input id="zoom-toggle" checked data-toggle="toggle" type="checkbox" data-on="Big" data-off="Normal">
   </div>
   <div class="navbar-form navbar-right form-group">
-    <input id="filter-input" type="text" class="form-control" placeholder="Enter Filter RegEx">
-    <span id="search-clear" class="glyphicon glyphicon-remove-circle"></span>
+    <input id="filter-input" type="search" class="form-control" placeholder="Enter Filter RegEx">
   </div>
   <ul class="nav navbar-nav navbar-right nav-pills">
   
@@ -203,8 +216,8 @@ MathJax.Hub.Config({
 </div>
 
 
-<div class="navbar navbar-inverse navbar-fixed-bottom">
-  <p class="navbar-text pull-left"> Built with <a href="https://github.com/cfangmeier/matplotboard">Matplotboard</a> </p>
+<div class="navbar navbar-inverse navbar-fixed-bottom bottom-nav">
+  <p class="navbar-text pull-left bottom-nav-text"> Built with <a href="https://github.com/cfangmeier/matplotboard">Matplotboard</a> </p>
 </div>
 
 </body>
@@ -357,8 +370,8 @@ var figures = [{"name": "cool_fig", "fig_fname": "dashboard/figures/cool_fig.png
   }
 
   function setZoom() {
-      const normalClasses = "col-xs-4 col-md-2";
-      const zoomClasses = "col-xs-12 col-md-4";
+      const normalClasses = "col-xs-12 col-sm-4 col-md-2";
+      const zoomClasses = "col-xs-12 col-sm-6 col-md-4";
       let figs = $(".figure-container");
       if ($("#zoom-toggle").prop('checked')) {
           figs.removeClass(normalClasses).addClass(zoomClasses);
@@ -390,19 +403,12 @@ var figures = [{"name": "cool_fig", "fig_fname": "dashboard/figures/cool_fig.png
       }
     });
 
-    $("#search-clear").click(function(){
-      filter_input.val('');
-      filter = '';
-      pageIdx = 0;
-      filterPlots();
-      updateURL();
-    });
-
-    $(window).keypress(function(e) {
-        if (e.key === "ArrowRight" && focus !== "") {
+    $(window).keydown(function(e) {
+        console.log(e.key);
+        if ((e.key === "ArrowRight" || e.key === "l") && focus !== "") {
             focus_next();
         }
-        if (e.key === "ArrowLeft" && focus !== "") {
+        if ((e.key === "ArrowLeft" || e.key === "h") && focus !== "") {
             focus_prev();
         }
     });
