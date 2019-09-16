@@ -169,12 +169,18 @@ def cool_fig(func, scale, color="b"):
 report = """\
 Authors: Will Hunting
 Date: December 2, 1997
+
 # Report On Functions
+
 ## Introduction
+
 As we all know, there are many functions. An example is the sine function seen below.
 fig::sin_b_1
+
 ## Other Functions
+
 However, there are many other functions such as the tangent or exponential.
+
 <div class="row">
 <div class="col-md-6 row_fig">
 fig::tan_r_1|The rugged tangent function
@@ -183,12 +189,16 @@ fig::tan_r_1|The rugged tangent function
 fig::exp_g_2|The majestic exponential function
 </div>
 </div>
+
 The decision of which function is best is up to *you*!
+
 ## Local Figures
+
 I happened to have a couple *really* fantastic figures on my computer that I
 want to include as well. How do I include them? It's easy! Just add them to
 the list of figures with the `loc_fig` function and they will be marked to be
 copied to the output directory. Here are a couple examples:
+
 <div class="row">
 <div class="col-md-6 row_fig">
 fig::image8
