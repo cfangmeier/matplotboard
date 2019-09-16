@@ -26,7 +26,7 @@ if __name__ == '__main__':
     mpb.render(figures)
     mpb.generate_report(figures, 'Report')
 ```
-You can view the results [here](https://cfangmeier.github.io/matplotboard/example_01/dashboard/report.html). Let's walk through this a one part at a time.
+You can view the results [here](https://cfangmeier.github.io/matplotboard/example_01/dashboard/report.html). Let's walk through this one part at a time.
 
 First, we import `numpy` and `matplotlib` for some calculations, and plotting,
 respectively. As well as `matplotboard` itself.
@@ -39,7 +39,7 @@ import matplotboard as mpb
 
 
 `matplotboard` relies upon `matplotlib` for the underlying rendering engine so
-other plotting libraries are not supported, however, wrappers around
+other plotting libraries are not supported. However, wrappers around
 `matplotlib` such as `seaborn` should work.
 
 Next, we declare the function that is actually going to do the plotting.
@@ -79,7 +79,11 @@ if __name__ == '__main__':
 
 Both `render`, and `generate_report` take a dictionary as their first argument.
 The dictionary keys are strings that are interpreted as the individual figure
-names, and the the dictionary values the plots we want to generate (note that the function must be called, even if there are no arguments).
+names, and the dictionary values are the plots we want to generate. Note that
+the function is called before inserting it into the dictionary. Due to the 
+modification of the original function by the decorator, this doesn't actually
+call the function yet, but bundles the function and any arguments together
+into a `Figure` object which it then returns for later processing by `matplotboard`.
 
 By writing plotting functions with arguments, a single function can be reused
 to make many different plots. For example, you may have a dataset that is
@@ -195,7 +199,7 @@ if __name__ == '__main__':
     for color, function, scale in product('rbgk', ['sin', 'tan', 'exp'], np.linspace(1, 5, 5)):
         figures[f'{function}_{color}_{int(scale)}'] = cool_fig(function, scale, color=color)
 
-    mpb.render(figures, refresh=False)
+    mpb.render(figures)
     mpb.generate_report(figures, 'Report', body=report)
 ```
 
