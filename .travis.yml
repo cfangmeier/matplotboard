@@ -4,10 +4,9 @@ python:
   - "3.5"
   - "3.6"
   - "3.7"
-before_install:
-  - ls -l /usr/bin
-  - sudo /usr/bin/pip install black
 install:
   - pip install -r requirements.txt
+  - git clone https://github.com/psf/black.git
 script:
-  - /usr/bin/black --check matplotboard
+  - ls -l `which python`
+  - python black/black.py --check matplotboard
