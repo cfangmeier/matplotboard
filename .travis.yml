@@ -4,6 +4,9 @@ python:
   - "3.5"
   - "3.6"
   - "3.7"
+before_install:
+  - sudo apt-get install -y black
 install:
-  - pip install -r requirements_dev.txt
-script: black --check matplotboard
+  - pip install -r requirements.txt
+script:
+  - black --check matplotboard
