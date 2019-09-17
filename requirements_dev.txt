@@ -1,0 +1,8 @@
+matplotlib>=3.0.3
+Jinja2>=2.10
+Markdown>=3.0.1
+python-markdown-math>=0.6
+namedlist>=1.7
+openssh-wrapper>=0.4
+pathos>=0.2.3
+black>=19.3b0
