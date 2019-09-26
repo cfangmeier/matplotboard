@@ -107,13 +107,13 @@
   var figures = [];
 {% endblock %}
 
-  let filter = "";
-  let focus = "";
-  let pages = [];
-  let pageIdx = 0;
-  const figs_per_page = 48;
+let filter = "";
+let focus = "";
+let pages = [];
+let pageIdx = 0;
+const figs_per_page = 48;
 
-  function getParameterByName(name, url) {
+function getParameterByName(name, url) {
     if (!url) url = window.location.href;
     name = name.replace(/[\[\]]/g, "\\$&");
     let regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)");
@@ -121,10 +121,10 @@
     if (!results) return null;
     if (!results[2]) return '';
     return decodeURIComponent(results[2].replace(/\+/g, " "));
-  }
+}
 
-  function constructFigure(figure) {
-      return $(`\
+function constructFigure(figure) {
+    return $(`\
 <div id="${figure['name']}" class="well center-block figure-container" style="padding:5px;">
   <a title="${figure['title']}">
     <img id="_${figure['name']}" src="./figures/${figure['name']}.png" class="thumbnail img-responsive center-block">
@@ -137,9 +137,9 @@
     <div class="text-left">${figure['docs']}</div>
   </div>
 </div>`);
-  }
+}
 
-  function urlWithArgs(obj) {
+function urlWithArgs(obj) {
     let url = location.protocol + '//' + location.host + location.pathname;
     let args = [];
     for (let key in obj) {
@@ -154,115 +154,150 @@
         url += "?" + args.join("&");
     }
     return url;
-  }
+}
 
-  function updateURL() {
-      let url = urlWithArgs({'filter': filter, 'focus': focus, 'page': pageIdx});
-      window.history.replaceState("", "", url);
-  }
+function updateURL() {
+    let url = urlWithArgs({'filter': filter, 'focus': focus, 'page': pageIdx});
+    window.history.replaceState("", "", url);
+}
 
-  function set_focus(thumb_id) {
-      if (thumb_id === "_undefined") return;
-      let thumb = $("#"+thumb_id);
-      $('.modal-body').empty();
-      let title = thumb.parent('a').attr("title");
-      let title_elem = $('.modal-title');
-      title_elem.html(title);
-      MathJax.Hub.Queue(["Typeset",MathJax.Hub,title_elem[0]]);
+function set_focus(thumb_id) {
+    if (thumb_id === "_undefined") return;
+    let thumb = $("#"+thumb_id);
+    $('.modal-body').empty();
+    let title = thumb.parent('a').attr("title");
+    let title_elem = $('.modal-title');
+    title_elem.html(title);
+    MathJax.Hub.Queue(["Typeset",MathJax.Hub,title_elem[0]]);
 
-      $(thumb.parents('div').html()).appendTo('.modal-body');
-      $('#myModal .caption').prop('hidden', false);
-      $('#myModal').modal({show:true});
-      focus = thumb_id.substring(1);
-      updateURL();
-  }
+    $(thumb.parents('div').html()).appendTo('.modal-body');
+    $('#myModal .caption').prop('hidden', false);
+    $('#myModal').modal({show:true});
+    focus = thumb_id.substring(1);
+    updateURL();
+}
 
-  function focus_next() {
-      set_focus("_"+$("#"+focus).next().prop("id"));
-  }
+function focus_next() {
+    let next = "_"+$("#"+focus).next().prop("id");
+    if (next === "_undefined") {  // end of current page
+        if (loadNextPage()) {
+            let first_id = $('.main-content .figure-container').first()[0].id;
+            set_focus("_"+first_id);
+        }
+    } else {
+        set_focus(next);
+    }
+}
 
-  function focus_prev() {
-      set_focus("_"+$("#"+focus).prev().prop("id"));
-  }
+function focus_prev() {
+    let prev = "_"+$("#"+focus).prev().prop("id");
+    if (prev === "_undefined") {  // end of current page
+        if (loadPrevPage()) {
+            let last_id = $('.main-content .figure-container').last()[0].id;
+            //TODO: find first item on new page
+            set_focus("_"+last_id);
+        }
+    } else {
+        set_focus(prev);
+    }
+}
 
-  function loadPage() {
-      let main_content = $('.main-content');
-      main_content.empty();
-      if (pages.length < pageIdx) return;
-      let page = [];
-      for (let figureIdx=0; figureIdx<pages[pageIdx].length; figureIdx++) {
-          page.push(constructFigure(pages[pageIdx][figureIdx]));
-      }
-      main_content.append(page);
-      setZoom();
-      MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
+function loadNextPage() {
+    if (pageIdx+1 >= pages.length) {
+        return false;
+    }
+    pageIdx++;
+    loadPage();
+    return true;
+}
 
-      $('.thumbnail').click(function() {
-          set_focus($(this).prop("id"));
-      });
-  }
+function loadPrevPage() {
+    if (pageIdx-1 < 0) {
+        return false;
+    }
+    pageIdx--;
+    loadPage();
+    return true;
+}
 
-  function filterPlots() {
-      let regex;
-      try {
-          regex = new RegExp(filter, "m");
-      } catch (e) {
-          $("#regex-failed").html('<div class="alert alert-danger">Regex Failed to Compile! Check this <a href="https://www.w3schools.com/jsref/jsref_obj_regexp.asp">reference</a>.</div>')
-          return;
-      }
-      $("#regex-failed").html('')
+function loadPage() {
+    let main_content = $('.main-content');
+    main_content.empty();
+    let page = [];
+    for (let figureIdx=0; figureIdx < pages[pageIdx].length; figureIdx++) {
+        page.push(constructFigure(pages[pageIdx][figureIdx]));
+    }
+    main_content.append(page);
+    setZoom();
+    MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
 
-      pages = [];
-      let page = [];
-      for (let figIdx = 0; figIdx < figures.length; figIdx++) {
-          if (!filter || regex.test(figures[figIdx]['name'])) {
-              page.push(figures[figIdx]);
-              if (page.length >= figs_per_page) {
-                  pages.push(page);
-                  page = [];
-              }
-          }
-      }
-      if (page.length > 0) pages.push(page);
+    $('.thumbnail').click(function() {
+        set_focus($(this).prop("id"));
+    });
 
-      let page_buttons = [];
-      if (pages.length > 1) {
-          for (let idx = 0; idx < pages.length; idx++) {
-              if (idx === pageIdx)
-                  page_buttons.push($(`<li class="active"><a>${idx + 1}</a></li>`));
-              else
-                  page_buttons.push($(`<li><a>${idx + 1}</a></li>`));
-          }
-      }
-      $('.pagination').empty().append(page_buttons);
+    $('.pagination li').removeClass("active");
+    $('#pg_'+pageIdx).addClass("active");
+    updateURL();
+}
 
-      $('.pagination li a').click(function() {
-          pageIdx = parseInt(this.innerText)-1;
-          loadPage();
-          $('.pagination li').removeClass("active");
-          $(this).parent().addClass("active");
-          updateURL();
-      });
+function filterPlots() {
+    let regex;
+    try {
+        regex = new RegExp(filter, "m");
+    } catch (e) {
+        $("#regex-failed").html('<div class="alert alert-danger">Regex Failed to Compile! Check this <a href="https://www.w3schools.com/jsref/jsref_obj_regexp.asp">reference</a>.</div>')
+        return;
+    }
+    $("#regex-failed").html('')
 
-      loadPage();
-  }
+    pages = [];
+    let page = [];
+    for (let figIdx = 0; figIdx < figures.length; figIdx++) {
+        if (!filter || regex.test(figures[figIdx]['name'])) {
+            page.push(figures[figIdx]);
+            if (page.length >= figs_per_page) {
+                pages.push(page);
+                page = [];
+            }
+        }
+    }
+    if (page.length > 0) pages.push(page);
 
-  function setZoom() {
-      const normalClasses = "col-xs-12 col-sm-4 col-md-2";
-      const zoomClasses = "col-xs-12 col-sm-6 col-md-4";
-      let figs = $(".figure-container");
-      if ($("#zoom-toggle").prop('checked')) {
-          figs.removeClass(normalClasses).addClass(zoomClasses);
-      } else {
-          figs.removeClass(zoomClasses).addClass(normalClasses);
-      }
-  }
+    let page_buttons = [];
+    if (pages.length > 1) {
+        for (let idx = 0; idx < pages.length; idx++) {
+            if (idx === pageIdx)
+                page_buttons.push($(`<li class="active" id="pg_${idx}"><a>${idx + 1}</a></li>`));
+            else
+                page_buttons.push($(`<li id="pg_${idx}"><a>${idx + 1}</a></li>`));
+        }
+    }
+    $('.pagination').empty().append(page_buttons);
 
-  $(function(){
+    $('.pagination li a').click(function() {
+        pageIdx = parseInt(this.innerText)-1;
+        loadPage();
+    });
+
+    loadPage();
+}
+
+function setZoom() {
+    const normalClasses = "col-xs-12 col-sm-4 col-md-2";
+    const zoomClasses = "col-xs-12 col-sm-6 col-md-4";
+    let figs = $(".figure-container");
+    if ($("#zoom-toggle").prop('checked')) {
+        figs.removeClass(normalClasses).addClass(zoomClasses);
+    } else {
+        figs.removeClass(zoomClasses).addClass(normalClasses);
+    }
+}
+
+$(function(){
 
     $("#myModal").on('hide.bs.modal', function() {
-      focus = '';
-      updateURL();
+        focus = '';
+        updateURL();
     });
 
     $('#zoom-toggle').bootstrapToggle('off');
@@ -273,21 +308,29 @@
     let filter_input = $("#filter-input");
 
     filter_input.keyup(function(e) {
-      if (e.which === 13) {
-        filter = this.value;
-        pageIdx = 0;
-        filterPlots();
-        updateURL();
-      }
+        if (e.which === 13) {
+            filter = this.value;
+            pageIdx = 0;
+            filterPlots();
+            updateURL();
+        }
     });
 
     $(window).keydown(function(e) {
-        console.log(e.key);
-        if ((e.key === "ArrowRight" || e.key === "l") && focus !== "") {
-            focus_next();
-        }
-        if ((e.key === "ArrowLeft" || e.key === "h") && focus !== "") {
-            focus_prev();
+        if (focus === "" || focus === null) {
+            if (e.key === "ArrowRight" || e.key === "l") {
+                loadNextPage();
+            }
+            if (e.key === "ArrowLeft" || e.key === "h") {
+                loadPrevPage();
+            }
+        } else {
+            if ((e.key === "ArrowRight" || e.key === "l")) {
+                focus_next();
+            }
+            if ((e.key === "ArrowLeft" || e.key === "h")) {
+                focus_prev();
+            }
         }
     });
 
@@ -299,6 +342,6 @@
     filterPlots(filter);
     focus = getParameterByName("focus");
     if (focus) {$("#_"+focus).click();}
-  });
+});
 </script>
 {% endblock %}
