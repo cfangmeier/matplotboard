@@ -7,7 +7,9 @@ def main():
     from argparse import ArgumentParser
     from . import render, generate_report, loc_fig, configure
 
-    parser = ArgumentParser("Matplotboard Command Line Utility")
+    parser = ArgumentParser(
+        "matplotboard", description="Matplotboard Command Line Utility"
+    )
     parser.add_argument("dir", help="Directory containing png files to put in a dump")
     parser.add_argument(
         "--version",
