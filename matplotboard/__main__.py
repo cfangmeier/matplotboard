@@ -15,9 +15,7 @@ def main():
         version="%(prog)s {version}".format(version=__version__),
     )
     parser.add_argument(
-        "--output",
-        help="Name of output directory.",
-        default="dashboard",
+        "--output", help="Name of output directory.", default="dashboard"
     )
     args = parser.parse_args()
 
