@@ -13,8 +13,6 @@ from markdown import Markdown
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 
-PY3 = sys.version_info.major == 3
-
 MD = Markdown(
     extensions=[
         "tables",
@@ -157,13 +155,7 @@ def _render_one(args):
 def makedirs(path):
     from os import makedirs as osmakedirs
 
-    if PY3:
-        osmakedirs(path, exist_ok=True)
-    else:
-        try:
-            osmakedirs(path)
-        except OSError:  # raised from file exists
-            pass
+    makedirs(path, exist_ok=True)
 
 
 def render(figures, titles=None, build=True, ncores=None):
@@ -250,11 +242,8 @@ def generate_report(
     from os.path import join
     from json import dumps
     from jinja2 import Environment, PackageLoader, select_autoescape
+    from urllib.parse import quote
 
-    if PY3:
-        from urllib.parse import quote
-    else:
-        from urllib import quote
     output_dir = CONFIG["output_dir"]
 
     env = Environment(
