@@ -10,8 +10,8 @@ import sys
 import traceback
 import logging
 from markdown import Markdown
-from namedlist import namedlist
 import matplotlib.pyplot as plt
+from dataclasses import dataclass
 
 PY3 = sys.version_info.major == 3
 
@@ -172,9 +172,26 @@ def render(figures, titles=None, build=True, ncores=None):
     from json import loads
     from pathos.multiprocessing import Pool, cpu_count
 
-    RenderedFigure = namedlist(
-        "RenderedFigure", "name fig_fname title argdict docs html idx"
-    )
+    @dataclass
+    class RenderedFigure:
+        name: str
+        fig_fname: str
+        title: str
+        argdict: dict
+        docs: str
+        html: str
+        idx: int
+
+        def _asdict(self):
+            return {
+                "name": self.name,
+                "fig_fname": self.fig_fname,
+                "title": self.title,
+                "argdict": self.argdict,
+                "docs": self.docs,
+                "html": self.html,
+                "idx": self.idx,
+            }
 
     pkg_dir = dirname(abspath(__file__))
     output_dir = CONFIG["output_dir"]
