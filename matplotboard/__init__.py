@@ -9,6 +9,7 @@ __all__ = ["decl_fig", "loc_fig", "render", "generate_report", "configure", "pub
 import sys
 import traceback
 import logging
+from os import makedirs
 from markdown import Markdown
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
@@ -152,12 +153,6 @@ def _render_one(args):
     return True
 
 
-def makedirs(path):
-    from os import makedirs as osmakedirs
-
-    makedirs(path, exist_ok=True)
-
-
 def render(figures, titles=None, build=True, ncores=None):
     from shutil import rmtree, copytree
     from os.path import join, dirname, abspath
@@ -191,11 +186,11 @@ def render(figures, titles=None, build=True, ncores=None):
 
     if build:
         rmtree(output_dir, ignore_errors=True)
-        makedirs(output_dir)
+        makedirs(output_dir, exist_ok=True)
         copytree(join(pkg_dir, "static", "css"), join(output_dir, "css"))
         copytree(join(pkg_dir, "static", "icons"), join(output_dir, "icons"))
-        makedirs(join(output_dir, "aux_figures"))
-        makedirs(figure_dir)
+        makedirs(join(output_dir, "aux_figures"), exist_ok=True)
+        makedirs(figure_dir, exist_ok=True)
 
         nplots = len(figures)
         args = []
@@ -317,7 +312,7 @@ def publish():
     copytree(par_dir, dir_name)
 
     if CONFIG["publish_remote"] in ("local", "localhost"):
-        makedirs(CONFIG["publish_dir"])
+        makedirs(CONFIG["publish_dir"], exist_ok=True)
         pubdir = join(CONFIG["publish_dir"], dir_name)
         rmtree(pubdir, ignore_errors=True)
         copytree(dir_name, pubdir)
