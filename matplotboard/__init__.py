@@ -4,7 +4,7 @@
 """
 from __future__ import print_function
 
-__all__ = ["decl_fig", "loc_fig", "render", "generate_report", "configure", "publish"]
+__all__ = ["decl_fig", "loc_fig", "render", "generate_report", "configure", "publish", "serve", "d"]
 
 import sys
 import traceback
@@ -26,8 +26,10 @@ MD = Markdown(
         "markdown.extensions.codehilite": {"css_class": "highlight", "linenums": True}
     },
 )
+
 CONFIG = {
     "output_dir": "dashboard",
+    "output": "report.html",
     "scale": 1.0,
     "multiprocess": False,
     "publish_remote": None,
@@ -35,7 +37,11 @@ CONFIG = {
     "publish_dir": "published",
     "early_abort": False,
     "publish_data": None,
+    "data_loader": lambda: {},
 }
+
+# Data proxy
+d = {}
 
 
 def configure(**config):
@@ -107,13 +113,16 @@ def loc_fig(fname):
     return fig
 
 
-def _render_one(args):
+def _render_one(idx, nplots, name, figure, figure_dir, q):
     from os.path import join
     from json import dumps
 
-    idx, nplots, name, figure, figure_dir = args
     fig_fname = join(figure_dir, name + ".png")
     print("Building plot #{}/{}: {}".format(idx + 1, nplots, name))
+
+    global d
+    if q is not None and d == {}:
+        d = q.get()
 
     if figure.orig_file is None:
         # Need to actually render this figure
@@ -158,6 +167,7 @@ def render(figures, titles=None, build=True, ncores=None):
     from os.path import join, dirname, abspath
     from json import loads
     from pathos.multiprocessing import Pool, cpu_count
+    from queue import Queue
 
     @dataclass
     class RenderedFigure:
@@ -198,12 +208,18 @@ def render(figures, titles=None, build=True, ncores=None):
             if type(figure) != Figure:
                 raise TypeError(name + " must be Figure, found: " + str(type(figure)))
             args.append((idx, nplots, name, figure, figure_dir))
+        CONFIG['data_loader']()
         if CONFIG["multiprocess"]:
-            pool = Pool(ncores if ncores is not None else cpu_count())
-            pool.map(_render_one, args)
+            n_procs = ncores if ncores is not None else cpu_count()
+            pool = Pool(n_procs)
+            q = Queue()
+            for _ in range(n_procs):
+                q.put(d)
+            args = [[*arg, q] for arg in args]
+            pool.starmap(_render_one, args)
         else:
             for arg in args:
-                _render_one(arg)
+                _render_one(*arg, None)
     try:
         for idx, (name, _) in enumerate(figures.items()):
             fig_fname = join(figure_dir, name + ".png")
@@ -227,7 +243,6 @@ def render(figures, titles=None, build=True, ncores=None):
 def generate_report(
     figures,
     title,
-    output="report.html",
     source=None,
     ana_source=None,
     config=None,
@@ -289,7 +304,7 @@ var figures = {};
             )
         )
 
-    with open(join(output_dir, output), "w") as f:
+    with open(join(output_dir, CONFIG["output"]), "w") as f:
         f.write(
             template.render(
                 figures=figures,
@@ -346,3 +361,42 @@ def publish():
         print("done.")
         if CONFIG["publish_url"] is not None:
             print("The plots are available at " + join(CONFIG["publish_url"], dir_name))
+
+
+def serve():
+    # Ripped from http.server
+    from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+    from functools import partial
+    import socket
+    import contextlib
+
+    def _get_best_family(*address):
+        infos = socket.getaddrinfo(
+            *address,
+            type=socket.SOCK_STREAM,
+            flags=socket.AI_PASSIVE,
+        )
+        family, type, proto, canonname, sockaddr = next(iter(infos))
+        return family, sockaddr
+
+    # ensure dual-stack is not disabled; ref #38907
+    class DualStackServer(ThreadingHTTPServer):
+        def server_bind(self):
+            # suppress exception when protocol is IPv4
+            with contextlib.suppress(Exception):
+                self.socket.setsockopt(
+                    socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+            return super().server_bind()
+
+    HandlerClass = partial(SimpleHTTPRequestHandler, directory=CONFIG['output_dir'])
+    DualStackServer.address_family, addr = _get_best_family(None, 8000)
+
+    HandlerClass.protocol_version = "HTTP/1.0"
+    with DualStackServer(addr, HandlerClass) as httpd:
+        host, port = httpd.socket.getsockname()[:2]
+        print(f"View results at http://localhost:{port}/{CONFIG['output']}")
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            print("\nKeyboard interrupt received, exiting.")
+            sys.exit(0)
