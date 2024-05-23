@@ -61,7 +61,8 @@ fig::image10
 
 """
 
-if __name__ == "__main__":
+
+def main():
     mpb.configure(multiprocess=True)
     figures = {}
 
@@ -76,3 +77,7 @@ if __name__ == "__main__":
 
     mpb.render(figures)
     mpb.generate_report(figures, "Report", body=report)
+
+
+if __name__ == "__main__":
+    main()

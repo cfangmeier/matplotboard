@@ -68,9 +68,9 @@ class Figure(object):
 
     @staticmethod
     def _fn_call_to_dict(fn, *args, **kwargs):
-        from inspect import getargspec
+        from inspect import getfullargspec
 
-        pnames = list(getargspec(fn).args)
+        pnames = list(getfullargspec(fn).args)
         pvals = list(args) + list(kwargs.values())
 
         def escape(s, quote=True):

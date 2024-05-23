@@ -16,7 +16,7 @@ def cool_fig(func, scale, color="b"):
     plt.plot(xs, ys, color=color)
 
 
-if __name__ == "__main__":
+def main():
     mpb.configure(multiprocess=True)
     figures = {}
 
@@ -29,3 +29,7 @@ if __name__ == "__main__":
 
     mpb.render(figures)
     mpb.generate_report(figures, "Report")
+
+
+if __name__ == "__main__":
+    main()

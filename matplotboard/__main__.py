@@ -1,6 +1,3 @@
-from .version import __version__
-
-
 def main():
     from glob import glob
     from os.path import join, split, splitext
