@@ -2,9 +2,19 @@
     matplotboard.py
     The functions in this module used to declare, render, and compile figures generated with matplotlib.
 """
+
 from __future__ import print_function
 
-__all__ = ["decl_fig", "loc_fig", "render", "generate_report", "configure", "publish", "serve", "d"]
+__all__ = [
+    "decl_fig",
+    "loc_fig",
+    "render",
+    "generate_report",
+    "configure",
+    "publish",
+    "serve",
+    "d",
+]
 
 import sys
 import traceback
@@ -208,7 +218,7 @@ def render(figures, titles=None, build=True, ncores=None):
             if type(figure) != Figure:
                 raise TypeError(name + " must be Figure, found: " + str(type(figure)))
             args.append((idx, nplots, name, figure, figure_dir))
-        CONFIG['data_loader']()
+        CONFIG["data_loader"]()
         if CONFIG["multiprocess"]:
             n_procs = ncores if ncores is not None else cpu_count()
             pool = Pool(n_procs)
@@ -384,11 +394,10 @@ def serve():
         def server_bind(self):
             # suppress exception when protocol is IPv4
             with contextlib.suppress(Exception):
-                self.socket.setsockopt(
-                    socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+                self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
             return super().server_bind()
 
-    HandlerClass = partial(SimpleHTTPRequestHandler, directory=CONFIG['output_dir'])
+    HandlerClass = partial(SimpleHTTPRequestHandler, directory=CONFIG["output_dir"])
     DualStackServer.address_family, addr = _get_best_family(None, 8000)
 
     HandlerClass.protocol_version = "HTTP/1.0"
